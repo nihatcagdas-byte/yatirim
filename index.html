@@ -1322,7 +1322,8 @@ const modalResetters={
   'm-import-preview':()=>{document.getElementById('import-preview-body').innerHTML='';},
   'm-add-fund':()=>{['af-code','af-name','af-nav','af-shares','af-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('af-type').value='';document.getElementById('af-lookup-result').innerHTML='';},
   'm-edit-fund':()=>{['ef-name'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('ef-type').value='';},
-  'm-edit-fund-lot':()=>{['efl-date','efl-nav','efl-shares','efl-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});}
+  'm-edit-fund-lot':()=>{['efl-date','efl-nav','efl-shares','efl-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});},
+  'm-manual-nav':()=>{const list=document.getElementById('manual-nav-list');if(list)list.innerHTML='';}
 };
 function openModal(id){
   const modal=document.getElementById(id);
@@ -1336,12 +1337,17 @@ function closeModal(id){
   const reset=modalResetters[id];
   if(reset)reset();
 }
-document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
+document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{
+  if(e.target!==o)return;
+  if(o.dataset.static==='true')return;
+  closeModal(o.id);
+}));
 document.addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
   const openModals=[...document.querySelectorAll('.ov.open')];
   if(!openModals.length)return;
   const topModal=openModals[openModals.length-1];
+  if(topModal.dataset.static==='true')return;
   closeModal(topModal.id);
 });
 
@@ -3340,6 +3346,20 @@ function downloadTemplate(){
   </div>
 </div>
 
+<div class="ov" id="m-manual-nav" data-static="true">
+  <div class="modal" style="max-width:560px">
+    <div class="mt">🧮 Manuel NAV Güncelleme</div>
+    <div style="font-size:.78rem;color:var(--muted2);line-height:1.7;margin-bottom:12px">
+      Bazı fonlar otomatik bulunamadı. Aşağıdan NAV değerlerini girip <strong>Tamam</strong> ile kaydedin.
+    </div>
+    <div id="manual-nav-list" style="display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;padding-right:4px"></div>
+    <div class="ma" style="margin-top:14px">
+      <button class="btn bg2" onclick="cancelManualNavModal()">İptal</button>
+      <button class="btn bp" onclick="saveManualNavEntries()">Tamam</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════
 // FON TAKİP SİSTEMİ
@@ -3551,11 +3571,21 @@ function extractNavFromRows(rows){
 async function fetchFundNav(code){
   const upperCode=(code||'').trim().toUpperCase();
   if(!upperCode)return null;
+  const fromDate=_dateStr(-30);
+  const toDate=_dateStr(0);
   const endpoints=[
     async()=>{
-      const url=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fontip=YAT&bastarih=${_dateStr(-14)}&bittarih=${_dateStr(0)}&fonkod=${upperCode}`;
+      const url=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fonttip=YAT&fontip=YAT&bastarih=${fromDate}&bittarih=${toDate}&fonkod=${upperCode}`;
       const txt=await fetchTextWithProxies(url,12000);
       if(!txt)return null;
+      const rows=parseFundRows(txt);
+      return extractNavFromRows(rows);
+    },
+    async()=>{
+      const directUrl=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fonttip=YAT&fontip=YAT&bastarih=${fromDate}&bittarih=${toDate}&fonkod=${upperCode}`;
+      const r=await fetch(directUrl,{signal:AbortSignal.timeout(10000)});
+      if(!r.ok)return null;
+      const txt=await r.text();
       const rows=parseFundRows(txt);
       return extractNavFromRows(rows);
     },
@@ -3576,8 +3606,14 @@ async function fetchFundNav(code){
       return parseFloat(j?.price||j?.Price||j?.nav||0)||null;
     },
   ];
-  for(const fn of endpoints){
-    try{const nav=await fn();if(nav&&nav>0)return nav;}catch(e){}
+  for(let i=0;i<2;i++){
+    for(const fn of endpoints){
+      try{
+        const nav=await fn();
+        if(nav&&nav>0)return nav;
+      }catch(e){}
+    }
+    await new Promise(r=>setTimeout(r,250));
   }
   return null;
 }
@@ -3598,36 +3634,76 @@ async function fetchAllFundNavs(){
     const nav=await fetchFundNav(f.code);
     if(nav){f.curNav=nav;f.navTs=Date.now();ok++;}
     else fail.push(f.code);
-    await new Promise(r=>setTimeout(r,300));
+    await new Promise(r=>setTimeout(r,450));
   }
   save();
   if(ok>0){
     st.innerHTML=`✓ ${ok} fon güncellendi${fail.length?' · '+fail.join(', ')+' bulunamadı — Manuel güncelleyin':''}`;
     st.style.color='var(--green)';
     if(fail.length){
-      // Manuel güncelleme için NAV input aç
-      setTimeout(()=>openManualNavModal(fail),1500);
+      setTimeout(()=>openManualNavModal(fail),600);
     }
   } else {
     st.innerHTML='⚠ Otomatik NAV çekilemedi — Lütfen manuel güncelleyin';
     st.style.color='var(--red)';
-    setTimeout(()=>openManualNavModal(S.funds.map(f=>f.code)),1500);
+    setTimeout(()=>openManualNavModal(S.funds.map(f=>f.code)),600);
   }
   setTimeout(()=>{st.style.display='none';st.style.color='';},8000);
   renderFunds();
 }
 
 function openManualNavModal(failedCodes){
-  // Manuel NAV girişi için basit prompt
-  failedCodes.forEach(code=>{
-    const f=S.funds.find(x=>x.code===code);if(!f)return;
-    const val=prompt(`${code} (${f.name}) için güncel NAV girin (₺/pay):`,f.curNav||'');
-    if(val){
-      const nav=parseFloat(val.replace(',','.'));
-      if(nav>0){f.curNav=nav;f.navTs=Date.now();}
+  const list=document.getElementById('manual-nav-list');
+  if(!list)return;
+  const uniq=[...new Set((failedCodes||[]).map(x=>(x||'').toUpperCase()).filter(Boolean))];
+  list.innerHTML=uniq.map(code=>{
+    const f=S.funds.find(x=>x.code===code);
+    if(!f)return '';
+    const current=f.curNav?f.curNav.toFixed(6):'';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--sf2);border:1px solid var(--br);border-radius:10px">
+      <div style="min-width:68px">
+        <div style="font-family:var(--fm);font-weight:800;color:var(--ac)">${f.code}</div>
+        <div style="font-size:.65rem;color:var(--muted)">${current?('Mevcut '+current):'Mevcut yok'}</div>
+      </div>
+      <div style="flex:1;min-width:0;font-size:.74rem;color:var(--muted2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name||''}</div>
+      <input type="number" id="mn-${f.code}" step="0.000001" placeholder="${current||'NAV girin'}" style="width:150px;text-align:right;font-family:var(--fm);font-weight:700">
+    </div>`;
+  }).join('');
+  openModal('m-manual-nav');
+}
+
+function saveManualNavEntries(){
+  const list=document.getElementById('manual-nav-list');
+  if(!list)return closeModal('m-manual-nav');
+  let updated=0;
+  S.funds.forEach(f=>{
+    const el=document.getElementById('mn-'+f.code);
+    if(!el)return;
+    const val=(el.value||'').replace(',','.');
+    if(!val)return;
+    const nav=parseFloat(val);
+    if(nav>0){
+      f.curNav=nav;
+      f.navTs=Date.now();
+      updated++;
     }
   });
-  save(); renderFunds();
+  save();
+  closeModal('m-manual-nav');
+  renderFunds();
+  if(updated>0){
+    const st=document.getElementById('fund-status');
+    if(st){
+      st.style.display='block';
+      st.style.color='var(--green)';
+      st.textContent=`✓ Manuel olarak ${updated} fon NAV değeri güncellendi`;
+      setTimeout(()=>{st.style.display='none';st.style.color='';},5000);
+    }
+  }
+}
+
+function cancelManualNavModal(){
+  closeModal('m-manual-nav');
 }
 
 // ── RENDER ─────────────────────────────────────
