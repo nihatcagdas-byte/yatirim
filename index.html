@@ -1348,6 +1348,12 @@ document.addEventListener('keydown',e=>{
 // ══════════════════════════════════════════════
 // CRUD
 // ══════════════════════════════════════════════
+const TXN_REFRESH_PAGE_KEY='tt:refresh-page';
+function triggerTxnRefresh(pageId){
+  try{ if(pageId)sessionStorage.setItem(TXN_REFRESH_PAGE_KEY,pageId); }catch(e){}
+  setTimeout(()=>location.reload(),80);
+}
+
 function saveStock(){
   // Ticker: önce select'e bakıyoruz, yoksa input'tan al
   const selVal=document.getElementById('a-tick-sel').value;
@@ -1368,7 +1374,7 @@ function saveStock(){
   if(selMonths.length>0) s.divMonths=selMonths;
   // Mevcut hissede isim/sektör güncelleme yok — sadece alım ekleniyor
   s.lots.push({id:Date.now()+Math.random(),date,price,lots,curPrice:S.prices[tick]?.price||null,expDiv:parseFloat(document.getElementById('a-exp').value)||null,note:document.getElementById('a-note').value.trim()});
-  save();closeModal('m-add');renderAll();fillCmpSels();
+  save();closeModal('m-add');renderAll();fillCmpSels();triggerTxnRefresh('stocks');
 }
 function fillDivSel(){const sel=document.getElementById('d-tick');sel.innerHTML='<option value="">Seçin...</option>';S.stocks.forEach(s=>sel.innerHTML+=`<option value="${s.ticker}">${s.ticker} — ${s.name}</option>`);}
 function calcDiv(){const t=document.getElementById('d-tick').value,p=parseFloat(document.getElementById('d-per').value)||0,s=S.stocks.find(x=>x.ticker===t);if(s&&p>0)document.getElementById('d-tot').value=(s.lots.reduce((a,l)=>a+l.lots,0)*p).toFixed(2);else document.getElementById('d-tot').value='';}
@@ -1378,15 +1384,15 @@ function saveDiv(){
   if(!t||!d||isNaN(p)||p<=0){alert('Hisse, tarih ve temettü zorunludur.');return;}
   const s=S.stocks.find(x=>x.ticker===t);
   S.dividends.push({id:Date.now(),ticker:t,date:d,perShare:p,total:(s?s.lots.reduce((a,l)=>a+l.lots,0):0)*p,period:document.getElementById('d-prd').value.trim()});
-  save();closeModal('m-div');renderAll();
+  save();closeModal('m-div');renderAll();triggerTxnRefresh('stocks');
 }
 function saveNote(){
   const b=document.getElementById('n-body').value.trim();if(!b){alert('İçerik boş.');return;}
   S.notes.push({id:Date.now(),ticker:document.getElementById('n-tick').value.trim().toUpperCase(),title:document.getElementById('n-ttl').value.trim(),content:b,date:document.getElementById('n-date').value,tag:document.getElementById('n-tag').value});
   save();closeModal('m-note');renderNotes();
 }
-function delStock(t){if(!confirm(`"${t}" silinsin mi?`))return;S.stocks=S.stocks.filter(s=>s.ticker!==t);S.dividends=S.dividends.filter(d=>d.ticker!==t);delete S.prices[t];save();renderAll();fillCmpSels();}
-function delLot(t,id){const s=S.stocks.find(x=>x.ticker===t);if(s){s.lots=s.lots.filter(l=>l.id!==id);if(!s.lots.length){S.stocks=S.stocks.filter(x=>x.ticker!==t);delete S.prices[t];}}save();renderAll();}
+function delStock(t){if(!confirm(`"${t}" silinsin mi?`))return;S.stocks=S.stocks.filter(s=>s.ticker!==t);S.dividends=S.dividends.filter(d=>d.ticker!==t);delete S.prices[t];save();renderAll();fillCmpSels();triggerTxnRefresh('stocks');}
+function delLot(t,id){const s=S.stocks.find(x=>x.ticker===t);if(s){s.lots=s.lots.filter(l=>l.id!==id);if(!s.lots.length){S.stocks=S.stocks.filter(x=>x.ticker!==t);delete S.prices[t];}}save();renderAll();triggerTxnRefresh('stocks');}
 function delDiv(id){S.dividends=S.dividends.filter(d=>d.id!==id);save();renderAll();}
 function delNote(id){S.notes=S.notes.filter(n=>n.id!==id);save();renderNotes();}
 
@@ -2941,6 +2947,13 @@ function today(){return new Date().toISOString().split('T')[0];}
 load();
 setTheme(S.settings?.theme||'ocean');
 renderAll();
+try{
+  const restorePage=sessionStorage.getItem(TXN_REFRESH_PAGE_KEY);
+  if(restorePage){
+    sessionStorage.removeItem(TXN_REFRESH_PAGE_KEY);
+    setTimeout(()=>switchToTab(restorePage),0);
+  }
+}catch(e){}
 if(S.stocks.length){
   document.getElementById('last-upd').textContent='Yüklendi · '+new Date().toLocaleString('tr-TR');
   if(S.settings?.['auto-price']==='true'||S.settings?.['auto-price']===true)setTimeout(fetchAllPrices,1200);
@@ -3176,6 +3189,7 @@ function saveEditStock(){
   save();
   closeModal('m-edit-stock');
   renderAll();
+  triggerTxnRefresh('stocks');
 }
 
 // Alım satırı düzenleme
@@ -3212,6 +3226,7 @@ function saveEditLot(){
   save();
   closeModal('m-edit-lot');
   renderAll();
+  triggerTxnRefresh('stocks');
 }
 </script>
 <!-- Excel/CSV İçe Aktarma Önizleme Modalı -->
@@ -3361,17 +3376,14 @@ async function lookupFund(){
 
 async function tryFillFundName(code){
   try{
-    const url=`https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=${code}`;
-    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-    const r=await fetch(proxy,{signal:AbortSignal.timeout(10000)});
-    if(!r.ok)return;
-    const html=(await r.json()).contents||'';
-    // <title>TEFAS - FON ADI</title> veya başka pattern
+    const html=await fetchTextWithProxies(`https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=${code}`,10000);
+    if(!html)return;
     const m=html.match(/id="MainContent_LabelFonBaslik"[^>]*>([^<]+)</)
-      ||html.match(/<title>[^-]+-\s*([^<]+)<\/title>/);
+      ||html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i)
+      ||html.match(/<title>[^-]+-\s*([^<]+)<\/title>/i);
     if(m&&m[1]&&m[1].length>3){
       const nameEl=document.getElementById('af-name');
-      if(nameEl&&!nameEl.value) nameEl.value=m[1].trim();
+      if(nameEl&&!nameEl.value) nameEl.value=m[1].replace(/\s+/g,' ').trim();
     }
   }catch(e){}
 }
@@ -3411,6 +3423,7 @@ function saveFund(){
   save();
   closeModal('m-add-fund');
   renderFunds();
+  triggerTxnRefresh('funds');
 }
 
 function openEditFundModal(code){
@@ -3427,7 +3440,7 @@ function saveEditFund(){
   const name=document.getElementById('ef-name').value.trim();
   if(!name){alert('Fon adı boş olamaz.');return;}
   f.name=name; f.type=document.getElementById('ef-type').value;
-  save(); closeModal('m-edit-fund'); renderFunds();
+  save(); closeModal('m-edit-fund'); renderFunds(); triggerTxnRefresh('funds');
 }
 
 function openEditFundLotModal(code,lotId){
@@ -3454,44 +3467,99 @@ function saveEditFundLot(){
   if(!date||!nav||!shares){alert('Tarih, NAV ve pay zorunludur.');return;}
   lot.date=date; lot.nav=nav; lot.shares=shares;
   lot.note=document.getElementById('efl-note').value.trim();
-  save(); closeModal('m-edit-fund-lot'); renderFunds();
+  save(); closeModal('m-edit-fund-lot'); renderFunds(); triggerTxnRefresh('funds');
 }
 
 function delFund(code){
   if(!confirm(`"${code}" fonunu ve tüm alım kayıtlarını silmek istiyor musunuz?`))return;
   S.funds=S.funds.filter(x=>x.code!==code);
-  save(); renderFunds();
+  save(); renderFunds(); triggerTxnRefresh('funds');
 }
 function delFundLot(code,lotId){
   const f=S.funds.find(x=>x.code===code);if(!f)return;
   if(!confirm('Bu alım kaydını silmek istiyor musunuz?'))return;
   f.lots=f.lots.filter(l=>l.id!==lotId);
   if(!f.lots.length){S.funds=S.funds.filter(x=>x.code!==code);}
-  save(); renderFunds();
+  save(); renderFunds(); triggerTxnRefresh('funds');
 }
 
 // ── NAV GÜNCELLEME ─────────────────────────────
 let _fundNavCache={}, _fundNavCacheTime=0;
 
-async function fetchFundNav(code){
-  // TEFAS API — açık endpoint
+function getLocalTefasProxyUrl(targetUrl){
+  if(!targetUrl)return null;
+  if(!/^https?:/i.test(location.protocol))return null;
+  return `${location.origin}/api/tefas?url=${encodeURIComponent(targetUrl)}`;
+}
+
+async function fetchTextWithProxies(url,timeoutMs=12000){
   const endpoints=[
     async()=>{
-      const url=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fontip=YAT&bastarih=${_dateStr(-7)}&bittarih=${_dateStr(0)}&fonkod=${code}`;
-      const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(12000)});
+      const localProxy=getLocalTefasProxyUrl(url);
+      if(!localProxy)return null;
+      const r=await fetch(localProxy,{signal:AbortSignal.timeout(timeoutMs)});
       if(!r.ok)return null;
-      const html=(await r.json()).contents||'';
-      const j=JSON.parse(html);
-      const rows=j?.data||j?.Data||[];
-      if(rows.length){const last=rows[rows.length-1];return parseFloat(last.FIYAT||last.fiyat||last.nav||0)||null;}
-      return null;
+      return await r.text();
     },
     async()=>{
-      // TEFAS fon detay sayfasından scrape
-      const url=`https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=${code}`;
-      const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(12000)});
+      const r=await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(timeoutMs)});
       if(!r.ok)return null;
-      const html=await r.text();
+      return await r.text();
+    },
+    async()=>{
+      const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(timeoutMs)});
+      if(!r.ok)return null;
+      const j=await r.json();
+      return j?.contents||null;
+    },
+    async()=>{
+      const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(timeoutMs)});
+      if(!r.ok)return null;
+      return await r.text();
+    },
+  ];
+  for(const fn of endpoints){
+    try{
+      const txt=await fn();
+      if(txt&&txt.length>10)return txt;
+    }catch(e){}
+  }
+  return null;
+}
+
+function parseFundRows(payload){
+  let j=payload;
+  if(typeof payload==='string'){
+    try{j=JSON.parse(payload);}catch(e){return [];}
+  }
+  const rows=j?.data||j?.Data||j?.value||[];
+  return Array.isArray(rows)?rows:[];
+}
+
+function extractNavFromRows(rows){
+  if(!rows?.length)return null;
+  const last=rows[rows.length-1]||{};
+  const nav=parseFloat(
+    last.FIYAT ?? last.Fiyat ?? last.fiyat ?? last.Price ?? last.price ?? last.NAV ?? last.nav ?? 0
+  );
+  return nav>0?nav:null;
+}
+
+async function fetchFundNav(code){
+  const upperCode=(code||'').trim().toUpperCase();
+  if(!upperCode)return null;
+  const endpoints=[
+    async()=>{
+      const url=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fontip=YAT&bastarih=${_dateStr(-14)}&bittarih=${_dateStr(0)}&fonkod=${upperCode}`;
+      const txt=await fetchTextWithProxies(url,12000);
+      if(!txt)return null;
+      const rows=parseFundRows(txt);
+      return extractNavFromRows(rows);
+    },
+    async()=>{
+      const url=`https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=${upperCode}`;
+      const html=await fetchTextWithProxies(url,12000);
+      if(!html)return null;
       const m=html.match(/id="MainContent_LabelFonFiyat"[^>]*>([\d.,]+)</)||
                html.match(/Birim Pay Değeri[^>]*>[^>]*>([\d.,]+)</);
       if(m) return parseFloat(m[1].replace(',','.'))||null;
