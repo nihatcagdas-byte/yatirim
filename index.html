@@ -1241,7 +1241,7 @@ function openAddModal(prefillTicker){
     sel.value=prefillTicker;
     onTickerSelect(prefillTicker);
   }
-  document.getElementById('m-add').classList.add('open');
+  openModal('m-add');
 }
 
 // Dropdown'dan mevcut hisse seçilince
@@ -1303,11 +1303,10 @@ function onNewTickerInput(val){
   }
 }
 
-function openDivModal(){fillDivSel();document.getElementById('d-date').value=today();document.getElementById('m-div').classList.add('open');}
-function openNoteModal(){document.getElementById('n-date').value=today();document.getElementById('m-note').classList.add('open');}
-function closeModal(id){
-  document.getElementById(id).classList.remove('open');
-  if(id==='m-add'){
+function openDivModal(){fillDivSel();document.getElementById('d-date').value=today();openModal('m-div');}
+function openNoteModal(){document.getElementById('n-date').value=today();openModal('m-note');}
+const modalResetters={
+  'm-add':()=>{
     ['a-tick','a-name','a-price','a-lots','a-exp','a-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});
     document.getElementById('a-sec').value='';
     document.getElementById('a-tick-sel').value='';
@@ -1315,14 +1314,36 @@ function closeModal(id){
     document.getElementById('a-existing-info').style.display='none';
     document.getElementById('a-new-ticker-wrap').style.display='flex';
     initMonthPicker([]);
-  }
-  if(id==='m-div'){['d-per','d-tot','d-prd'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});document.getElementById('d-tick').value='';}
-  if(id==='m-note'){['n-tick','n-ttl','n-body'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});document.getElementById('n-tag').value='';}
-  if(id==='m-edit-stock'){['es-name'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('es-sec').value='';initMonthPicker([],'es-months-picker');}
-  if(id==='m-edit-lot'){['el-date','el-price','el-lots','el-exp','el-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});}
-  if(id==='m-import-preview'){document.getElementById('import-preview-body').innerHTML='';}
+  },
+  'm-div':()=>{['d-per','d-tot','d-prd'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('d-tick').value='';},
+  'm-note':()=>{['n-tick','n-ttl','n-body'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('n-tag').value='';},
+  'm-edit-stock':()=>{['es-name'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('es-sec').value='';initMonthPicker([],'es-months-picker');},
+  'm-edit-lot':()=>{['el-date','el-price','el-lots','el-exp','el-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});},
+  'm-import-preview':()=>{document.getElementById('import-preview-body').innerHTML='';},
+  'm-add-fund':()=>{['af-code','af-name','af-nav','af-shares','af-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('af-type').value='';document.getElementById('af-lookup-result').innerHTML='';},
+  'm-edit-fund':()=>{['ef-name'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('ef-type').value='';},
+  'm-edit-fund-lot':()=>{['efl-date','efl-nav','efl-shares','efl-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});}
+};
+function openModal(id){
+  const modal=document.getElementById(id);
+  if(!modal)return;
+  modal.classList.add('open');
+}
+function closeModal(id){
+  const modal=document.getElementById(id);
+  if(!modal)return;
+  modal.classList.remove('open');
+  const reset=modalResetters[id];
+  if(reset)reset();
 }
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  const openModals=[...document.querySelectorAll('.ov.open')];
+  if(!openModals.length)return;
+  const topModal=openModals[openModals.length-1];
+  closeModal(topModal.id);
+});
 
 // ══════════════════════════════════════════════
 // CRUD
@@ -2165,7 +2186,6 @@ function parseImportCSV(text, fileName){
 }
 
 function showImportPreview(rows, type, fileName){
-  const modal = document.getElementById('m-import-preview');
   const area = document.getElementById('import-preview-body');
   const title = document.getElementById('import-preview-title');
   const count = document.getElementById('import-preview-count');
@@ -2210,7 +2230,7 @@ function showImportPreview(rows, type, fileName){
 
   // Onayla butonuna data ata
   document.getElementById('import-confirm-btn').onclick = () => doImport(rows, type);
-  modal.classList.add('open');
+  openModal('m-import-preview');
 }
 
 function doImport(rows, type){
@@ -2977,7 +2997,7 @@ function openManualPriceModal(){
       <a href="https://bigpara.hurriyet.com.tr/borsa/${s.ticker.toLowerCase()}/hisse-detay/" target="_blank" title="BigPara'da bak" style="color:var(--ac);font-size:.8rem;text-decoration:none;flex-shrink:0">↗</a>
     </div>`;
   }).join('');
-  document.getElementById('m-price').classList.add('open');
+  openModal('m-price');
 }
 
 function saveManualPrices(){
@@ -3141,7 +3161,7 @@ function openEditStockModal(ticker){
   document.getElementById('es-name').value=s.name||'';
   document.getElementById('es-sec').value=s.sector||'';
   initMonthPicker(s.divMonths||[],'es-months-picker');
-  document.getElementById('m-edit-stock').classList.add('open');
+  openModal('m-edit-stock');
 }
 function saveEditStock(){
   const ticker=document.getElementById('es-ticker-orig').value;
@@ -3171,7 +3191,7 @@ function openEditLotModal(ticker, lotId){
   document.getElementById('el-lots').value=lot.lots||'';
   document.getElementById('el-exp').value=lot.expDiv||'';
   document.getElementById('el-note').value=lot.note||'';
-  document.getElementById('m-edit-lot').classList.add('open');
+  openModal('m-edit-lot');
 }
 function saveEditLot(){
   const ticker=document.getElementById('el-ticker').value;
@@ -3321,7 +3341,7 @@ function openAddFundModal(){
   document.getElementById('af-type').value='';
   document.getElementById('af-date').value=today();
   document.getElementById('af-lookup-result').innerHTML='';
-  document.getElementById('m-add-fund').classList.add('open');
+  openModal('m-add-fund');
 }
 
 async function lookupFund(){
@@ -3399,7 +3419,7 @@ function openEditFundModal(code){
   document.getElementById('ef-code-display').textContent=code;
   document.getElementById('ef-name').value=f.name||'';
   document.getElementById('ef-type').value=f.type||'';
-  document.getElementById('m-edit-fund').classList.add('open');
+  openModal('m-edit-fund');
 }
 function saveEditFund(){
   const code=document.getElementById('ef-code-orig').value;
@@ -3419,7 +3439,7 @@ function openEditFundLotModal(code,lotId){
   document.getElementById('efl-nav').value=lot.nav;
   document.getElementById('efl-shares').value=lot.shares;
   document.getElementById('efl-note').value=lot.note||'';
-  document.getElementById('m-edit-fund-lot').classList.add('open');
+  openModal('m-edit-fund-lot');
 }
 function saveEditFundLot(){
   const code=document.getElementById('efl-code').value;
@@ -3703,15 +3723,6 @@ function renderFundBar(){
       }
     }
   });
-}
-
-// closeModal genişlet
-const _origCloseModal = closeModal;
-function closeModal(id){
-  _origCloseModal(id);
-  if(id==='m-add-fund'){['af-code','af-name','af-nav','af-shares','af-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('af-type').value='';document.getElementById('af-lookup-result').innerHTML='';}
-  if(id==='m-edit-fund'){['ef-name'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('ef-type').value='';}
-  if(id==='m-edit-fund-lot'){['efl-date','efl-nav','efl-shares','efl-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';}); }
 }
 
 // renderAll'a ekle
