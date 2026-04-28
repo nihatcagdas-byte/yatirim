@@ -373,6 +373,7 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
     <div class="tabs">
       <button class="tab active" onclick="showPage('dashboard',this)">📊 Portföy</button>
       <button class="tab" onclick="showPage('stocks',this)">🏦 Hisseler</button>
+      <button class="tab" onclick="showPage('funds',this)">📦 Fonlar</button>
       <button class="tab" onclick="showPage('calendar',this)">📅 Takvim</button>
       <button class="tab" onclick="showPage('analysis',this)">🔬 Analiz</button>
       <button class="tab" onclick="showPage('insights',this)">💡 Keşfet</button>
@@ -550,6 +551,51 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
     </div>
 
     <div id="stocks-area"><div class="empty"><div class="ei">📋</div><div class="et">Henüz alım kaydı yok.</div></div></div>
+  </div>
+</div>
+
+<!-- ═══════════ FONLAR ═══════════ -->
+<div id="p-funds" class="page">
+  <div class="wrap">
+    <div class="pg-header">
+      <div>
+        <div class="pg-title">Fon <span>Defteri</span></div>
+        <div class="pg-sub">TEFAS yatırım fonları — NAV takibi ve getiri analizi</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn bg2" onclick="fetchAllFundNavs()">🔄 NAV Güncelle</button>
+        <button class="btn bp" onclick="openAddFundModal()">+ Fon Ekle</button>
+      </div>
+    </div>
+
+    <!-- ÖZET KPI'LAR -->
+    <div class="kgrid" id="fund-kgrid" style="margin-bottom:18px">
+      <div class="kcard"><span class="kcard-icon">💼</span><div class="klabel">Toplam Yatırım</div><div class="kval mo" id="fk-inv">₺0</div><div class="ksub" id="fk-lots">0 alım</div></div>
+      <div class="kcard"><span class="kcard-icon">📈</span><div class="klabel">Güncel Değer</div><div class="kval mo" id="fk-cur">₺0</div><div class="ktrend neu" id="fk-pl">—</div></div>
+      <div class="kcard"><span class="kcard-icon">🏆</span><div class="klabel">Toplam Getiri</div><div class="kval mo" id="fk-ret">₺0</div><div class="ktrend neu" id="fk-retpct">—</div></div>
+      <div class="kcard"><span class="kcard-icon">📦</span><div class="klabel">Fon Sayısı</div><div class="kval mo" id="fk-cnt">0</div><div class="ksub">aktif fon</div></div>
+    </div>
+
+    <!-- DURUM SATIRI -->
+    <div id="fund-status" style="display:none;margin-bottom:14px;font-size:.78rem;font-family:var(--fm);padding:8px 14px;background:var(--sf2);border-radius:8px;border:1px solid var(--br)"></div>
+
+    <!-- SEKTÖR/TÜR DAĞILIMI + GRAFİK -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px">
+      <div class="cb">
+        <div class="ch"><div class="ct">🍩 Fon <span>Dağılımı</span></div></div>
+        <div style="position:relative;height:220px"><canvas id="fund-donut"></canvas></div>
+        <div id="fund-donut-legend" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <div class="cb">
+        <div class="ch"><div class="ct">📈 Getiri <span>Karşılaştırma</span></div></div>
+        <div style="position:relative;height:220px"><canvas id="fund-bar"></canvas></div>
+      </div>
+    </div>
+
+    <!-- FON KARTLARI -->
+    <div id="funds-area">
+      <div class="empty"><div class="ei">📦</div><div class="et">Henüz fon eklenmedi.<br>Sağ üstten ekleyebilirsiniz.</div></div>
+    </div>
   </div>
 </div>
 
@@ -1170,7 +1216,7 @@ function showPage(id,btn){
   renderAll();
 }
 function switchToTab(id){
-  const map={dashboard:0,stocks:1,calendar:2,analysis:3,insights:4,notes:5,settings:6};
+  const map={dashboard:0,stocks:1,funds:2,calendar:3,analysis:4,insights:5,notes:6,settings:7};
   showPage(id,document.querySelectorAll('.tab')[map[id]]);
 }
 
@@ -3177,6 +3223,480 @@ function downloadTemplate(){
   ].map(r=>r.map(v=>`"${v}"`).join(',')).join('\r\n');
   dl('temettu-alim-sablonu.csv', stockSheet, 'text/csv;charset=utf-8');
 }
+</script>
+
+<!-- FON MODALLERİ -->
+<div class="ov" id="m-add-fund">
+  <div class="modal" style="max-width:520px">
+    <div class="mt">📦 Fon Alımı Ekle</div>
+    <div class="fg">
+      <div class="fi full">
+        <label>Fon Kodu (TEFAS) *</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="af-code" placeholder="AAK, TI2, YAC..." style="text-transform:uppercase;font-family:var(--fm);font-weight:700;flex:1" oninput="this.value=this.value.toUpperCase()">
+          <button class="btn bg2 sm" onclick="lookupFund()" style="white-space:nowrap">🔍 Sorgula</button>
+        </div>
+        <div id="af-lookup-result" style="margin-top:6px;font-size:.75rem;min-height:20px"></div>
+      </div>
+      <div class="fi full"><label>Fon Adı *</label><input type="text" id="af-name" placeholder="Ak Portföy Birinci Hisse Senedi Fonu"></div>
+      <div class="fi full">
+        <label>Fon Türü</label>
+        <select id="af-type">
+          <option value="">Seçin...</option>
+          <option>Hisse Senedi Fonu</option><option>Borçlanma Araçları Fonu</option>
+          <option>Para Piyasası Fonu</option><option>Karma Fon</option>
+          <option>Fon Sepeti Fonu</option><option>Altın Fonu</option>
+          <option>Gayrimenkul Fonu</option><option>Serbest Fon</option>
+          <option>Endeks Fonu</option><option>Diğer</option>
+        </select>
+      </div>
+      <div class="fi"><label>Alım Tarihi *</label><input type="date" id="af-date"></div>
+      <div class="fi"><label>Alım NAV (₺/pay) *</label><input type="number" id="af-nav" placeholder="1.234567" step="0.000001"></div>
+      <div class="fi"><label>Pay Adedi *</label><input type="number" id="af-shares" placeholder="1000.00" step="0.01"></div>
+      <div class="fi full"><label>Not</label><input type="text" id="af-note" placeholder="Uzun vadeli birikim..."></div>
+    </div>
+    <div class="ma">
+      <button class="btn bg2" onclick="closeModal('m-add-fund')">İptal</button>
+      <button class="btn bp" onclick="saveFund()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="m-edit-fund">
+  <div class="modal" style="max-width:460px">
+    <div class="mt">✏️ Fon Bilgilerini Düzenle</div>
+    <input type="hidden" id="ef-code-orig">
+    <div class="fg">
+      <div class="fi full"><label>Fon Kodu</label><div id="ef-code-display" style="font-family:var(--fm);font-weight:800;color:var(--ac);font-size:1.2rem;padding:8px 0"></div></div>
+      <div class="fi full"><label>Fon Adı</label><input type="text" id="ef-name"></div>
+      <div class="fi full"><label>Fon Türü</label>
+        <select id="ef-type">
+          <option value="">Seçin...</option>
+          <option>Hisse Senedi Fonu</option><option>Borçlanma Araçları Fonu</option>
+          <option>Para Piyasası Fonu</option><option>Karma Fon</option>
+          <option>Fon Sepeti Fonu</option><option>Altın Fonu</option>
+          <option>Gayrimenkul Fonu</option><option>Serbest Fon</option>
+          <option>Endeks Fonu</option><option>Diğer</option>
+        </select>
+      </div>
+    </div>
+    <div class="ma">
+      <button class="btn bg2" onclick="closeModal('m-edit-fund')">İptal</button>
+      <button class="btn bp" onclick="saveEditFund()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="m-edit-fund-lot">
+  <div class="modal" style="max-width:460px">
+    <div class="mt">✏️ Alım Kaydını Düzenle</div>
+    <input type="hidden" id="efl-code">
+    <input type="hidden" id="efl-id">
+    <div class="fg">
+      <div class="fi"><label>Alım Tarihi *</label><input type="date" id="efl-date"></div>
+      <div class="fi"><label>Alım NAV (₺/pay) *</label><input type="number" id="efl-nav" step="0.000001"></div>
+      <div class="fi"><label>Pay Adedi *</label><input type="number" id="efl-shares" step="0.01"></div>
+      <div class="fi full"><label>Not</label><input type="text" id="efl-note"></div>
+    </div>
+    <div class="ma">
+      <button class="btn bg2" onclick="closeModal('m-edit-fund-lot')">İptal</button>
+      <button class="btn bp" onclick="saveEditFundLot()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// FON TAKİP SİSTEMİ
+// S.funds = [{code, name, type, lots:[{id,date,nav,shares,note}], curNav, navTs}]
+// ══════════════════════════════════════════════
+
+// Veri yükleme/kaydetme - S.funds mevcut S objesine entegre
+if(!S.funds) S.funds = [];
+
+// ── MODAL ──────────────────────────────────────
+function openAddFundModal(){
+  ['af-code','af-name','af-nav','af-shares','af-note'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('af-type').value='';
+  document.getElementById('af-date').value=today();
+  document.getElementById('af-lookup-result').innerHTML='';
+  document.getElementById('m-add-fund').classList.add('open');
+}
+
+async function lookupFund(){
+  const code = document.getElementById('af-code').value.trim().toUpperCase();
+  if(!code){alert('Fon kodu girin.');return;}
+  const res = document.getElementById('af-lookup-result');
+  res.innerHTML='<span style="color:var(--muted)">⟳ Sorgulanıyor...</span>';
+  const nav = await fetchFundNav(code);
+  if(nav){
+    res.innerHTML=`<span style="color:var(--green)">✓ Güncel NAV: <strong>₺${nav.toFixed(6)}</strong> — Fon bulundu</span>`;
+    // Fon adını TEFAS'tan doldurmayı dene
+    await tryFillFundName(code);
+  } else {
+    res.innerHTML=`<span style="color:var(--red)">⚠ Otomatik NAV çekilemedi — fon adını manuel girin, NAV'ı sonradan güncelleyebilirsiniz.</span>`;
+  }
+}
+
+async function tryFillFundName(code){
+  try{
+    const url=`https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=${code}`;
+    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const r=await fetch(proxy,{signal:AbortSignal.timeout(10000)});
+    if(!r.ok)return;
+    const html=(await r.json()).contents||'';
+    // <title>TEFAS - FON ADI</title> veya başka pattern
+    const m=html.match(/id="MainContent_LabelFonBaslik"[^>]*>([^<]+)</)
+      ||html.match(/<title>[^-]+-\s*([^<]+)<\/title>/);
+    if(m&&m[1]&&m[1].length>3){
+      const nameEl=document.getElementById('af-name');
+      if(nameEl&&!nameEl.value) nameEl.value=m[1].trim();
+    }
+  }catch(e){}
+}
+
+function saveFund(){
+  const code=document.getElementById('af-code').value.trim().toUpperCase();
+  const name=document.getElementById('af-name').value.trim();
+  const nav=parseFloat(document.getElementById('af-nav').value);
+  const shares=parseFloat(document.getElementById('af-shares').value);
+  const date=document.getElementById('af-date').value;
+  if(!code||!name||!nav||!shares||!date){alert('Fon kodu, adı, NAV, pay ve tarih zorunludur.');return;}
+  let f=S.funds.find(x=>x.code===code);
+  if(!f){
+    f={code,name,type:document.getElementById('af-type').value,lots:[],curNav:null,navTs:null};
+    S.funds.push(f);
+  }
+  f.lots.push({id:Date.now()+Math.random()*1e9,date,nav,shares,note:document.getElementById('af-note').value.trim()});
+  save(); closeModal('m-add-fund'); renderFunds();
+}
+
+function openEditFundModal(code){
+  const f=S.funds.find(x=>x.code===code);if(!f)return;
+  document.getElementById('ef-code-orig').value=code;
+  document.getElementById('ef-code-display').textContent=code;
+  document.getElementById('ef-name').value=f.name||'';
+  document.getElementById('ef-type').value=f.type||'';
+  document.getElementById('m-edit-fund').classList.add('open');
+}
+function saveEditFund(){
+  const code=document.getElementById('ef-code-orig').value;
+  const f=S.funds.find(x=>x.code===code);if(!f)return;
+  const name=document.getElementById('ef-name').value.trim();
+  if(!name){alert('Fon adı boş olamaz.');return;}
+  f.name=name; f.type=document.getElementById('ef-type').value;
+  save(); closeModal('m-edit-fund'); renderFunds();
+}
+
+function openEditFundLotModal(code,lotId){
+  const f=S.funds.find(x=>x.code===code);if(!f)return;
+  const lot=f.lots.find(l=>l.id===lotId);if(!lot)return;
+  document.getElementById('efl-code').value=code;
+  document.getElementById('efl-id').value=lotId;
+  document.getElementById('efl-date').value=lot.date;
+  document.getElementById('efl-nav').value=lot.nav;
+  document.getElementById('efl-shares').value=lot.shares;
+  document.getElementById('efl-note').value=lot.note||'';
+  document.getElementById('m-edit-fund-lot').classList.add('open');
+}
+function saveEditFundLot(){
+  const code=document.getElementById('efl-code').value;
+  const lotId=parseFloat(document.getElementById('efl-id').value);
+  const f=S.funds.find(x=>x.code===code);if(!f)return;
+  const lot=f.lots.find(l=>l.id===lotId);if(!lot)return;
+  const nav=parseFloat(document.getElementById('efl-nav').value);
+  const shares=parseFloat(document.getElementById('efl-shares').value);
+  const date=document.getElementById('efl-date').value;
+  if(!date||!nav||!shares){alert('Tarih, NAV ve pay zorunludur.');return;}
+  lot.date=date; lot.nav=nav; lot.shares=shares;
+  lot.note=document.getElementById('efl-note').value.trim();
+  save(); closeModal('m-edit-fund-lot'); renderFunds();
+}
+
+function delFund(code){
+  if(!confirm(`"${code}" fonunu ve tüm alım kayıtlarını silmek istiyor musunuz?`))return;
+  S.funds=S.funds.filter(x=>x.code!==code);
+  save(); renderFunds();
+}
+function delFundLot(code,lotId){
+  const f=S.funds.find(x=>x.code===code);if(!f)return;
+  if(!confirm('Bu alım kaydını silmek istiyor musunuz?'))return;
+  f.lots=f.lots.filter(l=>l.id!==lotId);
+  if(!f.lots.length){S.funds=S.funds.filter(x=>x.code!==code);}
+  save(); renderFunds();
+}
+
+// ── NAV GÜNCELLEME ─────────────────────────────
+let _fundNavCache={}, _fundNavCacheTime=0;
+
+async function fetchFundNav(code){
+  // TEFAS API — açık endpoint
+  const endpoints=[
+    async()=>{
+      const url=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fontip=YAT&bastarih=${_dateStr(-7)}&bittarih=${_dateStr(0)}&fonkod=${code}`;
+      const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(12000)});
+      if(!r.ok)return null;
+      const html=(await r.json()).contents||'';
+      const j=JSON.parse(html);
+      const rows=j?.data||j?.Data||[];
+      if(rows.length){const last=rows[rows.length-1];return parseFloat(last.FIYAT||last.fiyat||last.nav||0)||null;}
+      return null;
+    },
+    async()=>{
+      // TEFAS fon detay sayfasından scrape
+      const url=`https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=${code}`;
+      const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(12000)});
+      if(!r.ok)return null;
+      const html=await r.text();
+      const m=html.match(/id="MainContent_LabelFonFiyat"[^>]*>([\d.,]+)</)||
+               html.match(/Birim Pay Değeri[^>]*>[^>]*>([\d.,]+)</);
+      if(m) return parseFloat(m[1].replace(',','.'))||null;
+      return null;
+    },
+    async()=>{
+      // fonbul.com API — açık
+      const r=await fetch(`https://api.fonbul.com/api/Fund/${code}/Price`,{signal:AbortSignal.timeout(10000)});
+      if(!r.ok)return null;
+      const j=await r.json();
+      return parseFloat(j?.price||j?.Price||j?.nav||0)||null;
+    },
+  ];
+  for(const fn of endpoints){
+    try{const nav=await fn();if(nav&&nav>0)return nav;}catch(e){}
+  }
+  return null;
+}
+
+function _dateStr(offsetDays){
+  const d=new Date();d.setDate(d.getDate()+offsetDays);
+  return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+}
+
+async function fetchAllFundNavs(){
+  if(!S.funds.length){alert('Önce fon ekleyin.');return;}
+  const st=document.getElementById('fund-status');
+  st.style.display='block';
+  st.innerHTML='<span style="animation:spin .8s linear infinite;display:inline-block">⟳</span> TEFAS\'tan NAV çekiliyor...';
+  let ok=0,fail=[];
+  for(const f of S.funds){
+    st.innerHTML=`<span style="animation:spin .8s linear infinite;display:inline-block">⟳</span> ${f.code} sorgulanıyor...`;
+    const nav=await fetchFundNav(f.code);
+    if(nav){f.curNav=nav;f.navTs=Date.now();ok++;}
+    else fail.push(f.code);
+    await new Promise(r=>setTimeout(r,300));
+  }
+  save();
+  if(ok>0){
+    st.innerHTML=`✓ ${ok} fon güncellendi${fail.length?' · '+fail.join(', ')+' bulunamadı — Manuel güncelleyin':''}`;
+    st.style.color='var(--green)';
+    if(fail.length){
+      // Manuel güncelleme için NAV input aç
+      setTimeout(()=>openManualNavModal(fail),1500);
+    }
+  } else {
+    st.innerHTML='⚠ Otomatik NAV çekilemedi — Lütfen manuel güncelleyin';
+    st.style.color='var(--red)';
+    setTimeout(()=>openManualNavModal(S.funds.map(f=>f.code)),1500);
+  }
+  setTimeout(()=>{st.style.display='none';st.style.color='';},8000);
+  renderFunds();
+}
+
+function openManualNavModal(failedCodes){
+  // Manuel NAV girişi için basit prompt
+  failedCodes.forEach(code=>{
+    const f=S.funds.find(x=>x.code===code);if(!f)return;
+    const val=prompt(`${code} (${f.name}) için güncel NAV girin (₺/pay):`,f.curNav||'');
+    if(val){
+      const nav=parseFloat(val.replace(',','.'));
+      if(nav>0){f.curNav=nav;f.navTs=Date.now();}
+    }
+  });
+  save(); renderFunds();
+}
+
+// ── RENDER ─────────────────────────────────────
+function renderFunds(){
+  if(!S.funds) S.funds=[];
+  const area=document.getElementById('funds-area');
+  if(!area)return;
+
+  // KPI'lar
+  let totalCost=0,totalCur=0,totalShares=0,lotCount=0;
+  S.funds.forEach(f=>{
+    const shares=f.lots.reduce((a,l)=>a+l.shares,0);
+    const avgNav=shares?f.lots.reduce((a,l)=>a+l.nav*l.shares,0)/shares:0;
+    totalCost+=avgNav*shares;
+    totalCur+=(f.curNav||avgNav)*shares;
+    totalShares+=shares;
+    lotCount+=f.lots.length;
+  });
+  const totalPL=totalCur-totalCost;
+  const totalPLPct=totalCost?totalPL/totalCost*100:0;
+  _setEl('fk-inv',fmt(totalCost));
+  _setEl('fk-cur',fmt(totalCur));
+  _setEl('fk-lots',`${lotCount} alım`);
+  _setEl('fk-ret',fmt(totalPL));
+  _setEl('fk-retpct',`${totalPL>=0?'+':''}${totalPLPct.toFixed(2)}%`);
+  _setEl('fk-cnt',S.funds.length.toString());
+  const plEl=document.getElementById('fk-pl');
+  if(plEl){plEl.textContent=`${totalPL>=0?'+':''}${totalPLPct.toFixed(2)}%`;plEl.className=`ktrend ${totalPL>=0?'pos':'neg'}`;}
+  const retEl=document.getElementById('fk-retpct');
+  if(retEl){retEl.className=`ktrend ${totalPL>=0?'pos':'neg'}`;}
+
+  // Grafikler
+  renderFundDonut();
+  renderFundBar();
+
+  if(!S.funds.length){
+    area.innerHTML='<div class="empty"><div class="ei">📦</div><div class="et">Henüz fon eklenmedi.</div></div>';
+    return;
+  }
+
+  area.innerHTML=S.funds.map(f=>{
+    const shares=f.lots.reduce((a,l)=>a+l.shares,0);
+    const avgNav=shares?f.lots.reduce((a,l)=>a+l.nav*l.shares,0)/shares:0;
+    const cost=avgNav*shares;
+    const cur=(f.curNav||avgNav)*shares;
+    const pl=cur-cost;
+    const plPct=cost?pl/cost*100:0;
+    const navStr=f.curNav?`₺${f.curNav.toFixed(6)}`:'—';
+    const tsStr=f.navTs?new Date(f.navTs).toLocaleDateString('tr-TR'):'';
+
+    return `<div class="stock-card">
+      <div class="stock-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div class="stock-ticker-big" style="font-size:1.4rem">${f.code}</div>
+            ${f.type?`<span class="badge bb" style="font-size:.65rem">${f.type}</span>`:''}
+          </div>
+          <div style="font-size:.82rem;color:var(--muted2);margin-top:4px">${f.name}</div>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Güncel NAV</div>
+              <div class="mo" style="font-size:1.1rem;font-weight:700">${navStr}</div>
+              ${tsStr?`<div style="font-size:.62rem;color:var(--muted)">${tsStr} tarihli</div>`:''}
+            </div>
+            ${f.curNav?`<span class="badge ${pl>=0?'bg':'br'}">${pl>=0?'▲':'▼'} ${pl>=0?'+':''}${plPct.toFixed(2)}%</span>`:''}
+          </div>
+        </div>
+        <div class="stock-metrics">
+          <div class="metric"><div class="metric-lbl">Toplam Pay</div><div class="metric-val mo">${shares.toLocaleString('tr-TR',{maximumFractionDigits:4})}</div></div>
+          <div class="metric"><div class="metric-lbl">Ort. Alım NAV</div><div class="metric-val mo">₺${avgNav.toFixed(6)}</div></div>
+          <div class="metric"><div class="metric-lbl">Toplam Maliyet</div><div class="metric-val mo">${fmt(cost)}</div></div>
+          <div class="metric"><div class="metric-lbl">Güncel Değer</div><div class="metric-val mo">${f.curNav?fmt(cur):'—'}</div></div>
+          <div class="metric"><div class="metric-lbl">Kar/Zarar</div>
+            <div class="metric-val mo ${pl>=0?'pos':'neg'}">${f.curNav?`${pl>=0?'+':''}${fmt(pl)}`:'—'}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+            <button class="btn bg2 sm" onclick="openAddFundModal();document.getElementById('af-code').value='${f.code}';document.getElementById('af-name').value='${f.name.replace(/'/g,"\\'")}'" style="white-space:nowrap">+ Alım</button>
+            <button class="btn bg2 sm" onclick="openEditFundModal('${f.code}')">✏️</button>
+            <button class="btn bd sm" onclick="delFund('${f.code}')">🗑</button>
+          </div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Alım Tarihi</th><th>Alım NAV (₺)</th><th>Pay Adedi</th><th>Maliyet (₺)</th><th>Güncel Değer</th><th>Kar/Zarar</th><th>Not</th><th></th></tr></thead>
+        <tbody>
+          ${f.lots.sort((a,b)=>a.date.localeCompare(b.date)).map(l=>{
+            const lCur=(f.curNav||l.nav)*l.shares;
+            const lCost=l.nav*l.shares;
+            const lPl=lCur-lCost;
+            const lPlPct=lCost?lPl/lCost*100:0;
+            return `<tr>
+              <td class="mo">${l.date}</td>
+              <td class="mo">₺${l.nav.toFixed(6)}</td>
+              <td class="mo">${l.shares.toLocaleString('tr-TR',{maximumFractionDigits:4})}</td>
+              <td class="mo">${fmt(lCost)}</td>
+              <td class="mo">${f.curNav?fmt(lCur):'<span style="color:var(--muted)">—</span>'}</td>
+              <td>${f.curNav?`<span class="${lPl>=0?'pos':'neg'}">${lPl>=0?'+':''}${fmt(lPl)} <small style="opacity:.7">(${lPlPct.toFixed(2)}%)</small></span>`:'<span style="color:var(--muted)">—</span>'}</td>
+              <td style="font-size:.72rem;color:var(--muted)">${l.note||''}</td>
+              <td style="white-space:nowrap">
+                <button class="btn bg2 sm" onclick="openEditFundLotModal('${f.code}',${l.id})" style="margin-right:4px">✏️</button>
+                <button class="btn bd sm" onclick="delFundLot('${f.code}',${l.id})">🗑</button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+function _setEl(id,val){const e=document.getElementById(id);if(e)e.textContent=val;}
+
+// ── GRAFİKLER ──────────────────────────────────
+let _fundDonutChart=null, _fundBarChart=null;
+
+function renderFundDonut(){
+  const el=document.getElementById('fund-donut');
+  const leg=document.getElementById('fund-donut-legend');
+  if(!el||!S.funds.length){if(leg)leg.innerHTML='';return;}
+  const COLORS=['#00d4aa','#f5c518','#e05252','#4a9eff','#a855f7','#f97316','#10b981','#ec4899','#06b6d4','#84cc16'];
+  const data=S.funds.map(f=>{
+    const shares=f.lots.reduce((a,l)=>a+l.shares,0);
+    const avgNav=shares?f.lots.reduce((a,l)=>a+l.nav*l.shares,0)/shares:0;
+    return{code:f.code,val:(f.curNav||avgNav)*shares};
+  });
+  const total=data.reduce((a,d)=>a+d.val,0)||1;
+  if(_fundDonutChart)_fundDonutChart.destroy();
+  _fundDonutChart=new Chart(el,{
+    type:'doughnut',
+    data:{labels:data.map(d=>d.code),datasets:[{data:data.map(d=>d.val),backgroundColor:COLORS.slice(0,data.length),borderWidth:2,borderColor:'var(--bg)'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmt(ctx.raw)} (%${(ctx.raw/total*100).toFixed(1)})`}}}}
+  });
+  if(leg) leg.innerHTML=data.map((d,i)=>`<span style="display:flex;align-items:center;gap:5px;font-size:.72rem"><span style="width:10px;height:10px;border-radius:50%;background:${COLORS[i]};flex-shrink:0"></span>${d.code}</span>`).join('');
+}
+
+function renderFundBar(){
+  const el=document.getElementById('fund-bar');
+  if(!el||!S.funds.length)return;
+  const data=S.funds.map(f=>{
+    const shares=f.lots.reduce((a,l)=>a+l.shares,0);
+    const avgNav=shares?f.lots.reduce((a,l)=>a+l.nav*l.shares,0)/shares:0;
+    const cost=avgNav*shares;
+    const cur=(f.curNav||avgNav)*shares;
+    return{code:f.code,pct:cost?(cur-cost)/cost*100:0};
+  }).sort((a,b)=>b.pct-a.pct);
+  if(_fundBarChart)_fundBarChart.destroy();
+  _fundBarChart=new Chart(el,{
+    type:'bar',
+    data:{
+      labels:data.map(d=>d.code),
+      datasets:[{
+        label:'Getiri (%)',
+        data:data.map(d=>parseFloat(d.pct.toFixed(2))),
+        backgroundColor:data.map(d=>d.pct>=0?'rgba(0,212,170,.7)':'rgba(224,82,82,.7)'),
+        borderRadius:6
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{callback:v=>v+'%',color:'#888',font:{size:11}}},
+        x:{grid:{display:false},ticks:{color:'#888',font:{size:11}}}
+      }
+    }
+  });
+}
+
+// closeModal genişlet
+const _origCloseModal = closeModal;
+function closeModal(id){
+  _origCloseModal(id);
+  if(id==='m-add-fund'){['af-code','af-name','af-nav','af-shares','af-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('af-type').value='';document.getElementById('af-lookup-result').innerHTML='';}
+  if(id==='m-edit-fund'){['ef-name'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('ef-type').value='';}
+  if(id==='m-edit-fund-lot'){['efl-date','efl-nav','efl-shares','efl-note'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';}); }
+}
+
+// renderAll'a ekle
+const _origRenderAll=renderAll;
+function renderAll(){_origRenderAll();renderFunds();}
+
+// İlk yükleme
+if(!S.funds)S.funds=[];
+renderFunds();
 </script>
 </body>
 </html>
