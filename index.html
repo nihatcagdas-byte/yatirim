@@ -3489,6 +3489,9 @@ let _fundNavCache={}, _fundNavCacheTime=0;
 function getLocalTefasProxyUrl(targetUrl){
   if(!targetUrl)return null;
   if(!/^https?:/i.test(location.protocol))return null;
+  const host=(location.hostname||'').toLowerCase();
+  const isLocal=host==='localhost'||host==='127.0.0.1';
+  if(!isLocal)return null;
   return `${location.origin}/api/tefas?url=${encodeURIComponent(targetUrl)}`;
 }
 
