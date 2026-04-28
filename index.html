@@ -3313,6 +3313,7 @@ function downloadTemplate(){
 
 // Veri yükleme/kaydetme - S.funds mevcut S objesine entegre
 if(!S.funds) S.funds = [];
+let _fundLotCounter = Date.now();
 
 // ── MODAL ──────────────────────────────────────
 function openAddFundModal(){
@@ -3358,17 +3359,38 @@ async function tryFillFundName(code){
 function saveFund(){
   const code=document.getElementById('af-code').value.trim().toUpperCase();
   const name=document.getElementById('af-name').value.trim();
-  const nav=parseFloat(document.getElementById('af-nav').value);
-  const shares=parseFloat(document.getElementById('af-shares').value);
-  const date=document.getElementById('af-date').value;
-  if(!code||!name||!nav||!shares||!date){alert('Fon kodu, adı, NAV, pay ve tarih zorunludur.');return;}
+  const navRaw=document.getElementById('af-nav').value.replace(',','.');
+  const sharesRaw=document.getElementById('af-shares').value.replace(',','.');
+  const nav=parseFloat(navRaw);
+  const shares=parseFloat(sharesRaw);
+  const dateEl=document.getElementById('af-date');
+  const date=dateEl.value; // YYYY-MM-DD
+
+  const missing=[];
+  if(!code) missing.push('Fon Kodu');
+  if(!name) missing.push('Fon Adı');
+  if(!nav||isNaN(nav)) missing.push('Alım NAV');
+  if(!shares||isNaN(shares)) missing.push('Pay Adedi');
+  if(!date) missing.push('Alım Tarihi');
+  if(missing.length){alert('Eksik alanlar: '+missing.join(', '));return;}
+
+  if(!S.funds) S.funds=[];
   let f=S.funds.find(x=>x.code===code);
   if(!f){
-    f={code,name,type:document.getElementById('af-type').value,lots:[],curNav:null,navTs:null};
+    f={code,name,type:document.getElementById('af-type').value||'',lots:[],curNav:null,navTs:null};
     S.funds.push(f);
+  } else {
+    // Mevcut fona yeni alım — adı/türü de güncelle
+    if(name) f.name=name;
   }
-  f.lots.push({id:Date.now()+Math.random()*1e9,date,nav,shares,note:document.getElementById('af-note').value.trim()});
-  save(); closeModal('m-add-fund'); renderFunds();
+  f.lots.push({
+    id: ++_fundLotCounter,
+    date, nav, shares,
+    note: document.getElementById('af-note').value.trim()
+  });
+  save();
+  closeModal('m-add-fund');
+  renderFunds();
 }
 
 function openEditFundModal(code){
@@ -3403,9 +3425,11 @@ function saveEditFundLot(){
   const code=document.getElementById('efl-code').value;
   const lotId=parseFloat(document.getElementById('efl-id').value);
   const f=S.funds.find(x=>x.code===code);if(!f)return;
-  const lot=f.lots.find(l=>l.id===lotId);if(!lot)return;
-  const nav=parseFloat(document.getElementById('efl-nav').value);
-  const shares=parseFloat(document.getElementById('efl-shares').value);
+  const lot=f.lots.find(l=>String(l.id)===String(lotId)||l.id===lotId);if(!lot)return;
+  const navRaw=document.getElementById('efl-nav').value.replace(',','.');
+  const sharesRaw=document.getElementById('efl-shares').value.replace(',','.');
+  const nav=parseFloat(navRaw);
+  const shares=parseFloat(sharesRaw);
   const date=document.getElementById('efl-date').value;
   if(!date||!nav||!shares){alert('Tarih, NAV ve pay zorunludur.');return;}
   lot.date=date; lot.nav=nav; lot.shares=shares;
