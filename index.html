@@ -3276,6 +3276,7 @@ function downloadTemplate(){
         <div style="display:flex;gap:8px">
           <input type="text" id="af-code" placeholder="AAK, TI2, YAC..." style="text-transform:uppercase;font-family:var(--fm);font-weight:700;flex:1" oninput="this.value=this.value.toUpperCase()">
           <button class="btn bg2 sm" onclick="lookupFund()" style="white-space:nowrap">🔍 Sorgula</button>
+          <button class="btn bg2 sm" onclick="suggestFundCode()" style="white-space:nowrap">🤖 Kod Öner</button>
         </div>
         <div id="af-lookup-result" style="margin-top:6px;font-size:.75rem;min-height:20px"></div>
       </div>
@@ -3369,6 +3370,97 @@ function downloadTemplate(){
 // Veri yükleme/kaydetme - S.funds mevcut S objesine entegre
 if(!S.funds) S.funds = [];
 let _fundLotCounter = Date.now();
+let _fundHints = {};
+try{ _fundHints = JSON.parse(localStorage.getItem('fund_hints_v1')||'{}')||{}; }catch(e){ _fundHints = {}; }
+
+function persistFundHint(code,name=''){
+  const c=(code||'').trim().toUpperCase();
+  if(!/^[A-Z0-9]{2,6}$/.test(c))return;
+  const n=(name||'').trim();
+  _fundHints[c]={code:c,name:n,ts:Date.now()};
+  try{localStorage.setItem('fund_hints_v1',JSON.stringify(_fundHints));}catch(e){}
+}
+
+function normalizeTextTr(v=''){
+  return (v||'')
+    .toString()
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]/g,'');
+}
+
+function scoreFundCandidate(candidate,query){
+  const q=normalizeTextTr(query);
+  const code=normalizeTextTr(candidate.code||'');
+  const name=normalizeTextTr(candidate.name||'');
+  if(!q)return 0;
+  if(code===q)return 100;
+  let s=0;
+  if(code.startsWith(q))s+=60;
+  if(code.includes(q))s+=35;
+  if(name.includes(q))s+=28;
+  if(name.startsWith(q))s+=20;
+  if(code&&q&&Math.abs(code.length-q.length)<=1){
+    let diff=0;
+    for(let i=0;i<Math.max(code.length,q.length);i++)if((code[i]||'')!==(q[i]||''))diff++;
+    if(diff<=1)s+=20;
+  }
+  return s;
+}
+
+function buildFundCandidateList(){
+  const map=new Map();
+  (S.funds||[]).forEach(f=>{
+    const code=(f?.code||'').trim().toUpperCase();
+    if(!code)return;
+    map.set(code,{code,name:(f?.name||'').trim(),source:'portfoy'});
+  });
+  Object.keys(_fundHints||{}).forEach(code=>{
+    const c=(code||'').trim().toUpperCase();
+    if(!c)return;
+    const prev=map.get(c)||{code:c,name:'',source:'hafiza'};
+    const h=_fundHints[c]||{};
+    map.set(c,{...prev,name:prev.name||h.name||'',source:prev.source||'hafiza'});
+  });
+  return [...map.values()];
+}
+
+function suggestFundCandidates(query,limit=5){
+  const candidates=buildFundCandidateList();
+  return candidates
+    .map(c=>({candidate:c,score:scoreFundCandidate(c,query)}))
+    .filter(x=>x.score>0)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,limit)
+    .map(x=>x.candidate);
+}
+
+async function suggestFundCode(){
+  const codeEl=document.getElementById('af-code');
+  const nameEl=document.getElementById('af-name');
+  const res=document.getElementById('af-lookup-result');
+  if(!res||!codeEl)return;
+  const query=((codeEl.value||'').trim() || (nameEl?.value||'').trim());
+  if(!query){
+    res.innerHTML='<span style="color:var(--muted)">Fon kodu veya fon adı girin, ardından kod önerisi alın.</span>';
+    return;
+  }
+  const suggestions=suggestFundCandidates(query,5);
+  if(!suggestions.length){
+    res.innerHTML='<span style="color:var(--muted2)">Öneri bulunamadı. Kodu girip <strong>Sorgula</strong> ile devam edin.</span>';
+    return;
+  }
+  res.innerHTML=`<span style="color:var(--muted2)">Önerilen kodlar:</span> `+
+    suggestions.map(s=>`<button class="btn bg2 sm" style="margin-left:6px" onclick="applyFundSuggestion('${s.code}')">${s.code}</button>`).join('');
+}
+
+function applyFundSuggestion(code){
+  const c=(code||'').toUpperCase();
+  const codeEl=document.getElementById('af-code');
+  if(codeEl)codeEl.value=c;
+  lookupFund();
+}
 
 // ── MODAL ──────────────────────────────────────
 function openAddFundModal(){
@@ -3387,10 +3479,17 @@ async function lookupFund(){
   const nav = await fetchFundNav(code);
   if(nav){
     res.innerHTML=`<span style="color:var(--green)">✓ Güncel NAV: <strong>₺${nav.toFixed(6)}</strong> — Fon bulundu</span>`;
+    const navEl=document.getElementById('af-nav');
+    if(navEl && !navEl.value) navEl.value=nav.toFixed(6);
     // Fon adını TEFAS'tan doldurmayı dene
     await tryFillFundName(code);
+    persistFundHint(code,(document.getElementById('af-name')?.value||'').trim());
   } else {
-    res.innerHTML=`<span style="color:var(--red)">⚠ Otomatik NAV çekilemedi — fon adını manuel girin, NAV'ı sonradan güncelleyebilirsiniz.</span>`;
+    const suggestions=suggestFundCandidates(code,4);
+    const suggestionHtml=suggestions.length
+      ? `<div style="margin-top:6px">Yakın kodlar: ${suggestions.map(s=>`<button class="btn bg2 sm" style="margin-left:6px" onclick="applyFundSuggestion('${s.code}')">${s.code}</button>`).join('')}</div>`
+      : '';
+    res.innerHTML=`<span style="color:var(--red)">⚠ Otomatik NAV çekilemedi (15 sn) — fon adını manuel girin, NAV'ı sonradan güncelleyebilirsiniz.</span>${suggestionHtml}`;
   }
 }
 
@@ -3403,7 +3502,9 @@ async function tryFillFundName(code){
       ||html.match(/<title>[^-]+-\s*([^<]+)<\/title>/i);
     if(m&&m[1]&&m[1].length>3){
       const nameEl=document.getElementById('af-name');
-      if(nameEl&&!nameEl.value) nameEl.value=m[1].replace(/\s+/g,' ').trim();
+      const cleanName=m[1].replace(/\s+/g,' ').trim();
+      if(nameEl&&!nameEl.value) nameEl.value=cleanName;
+      persistFundHint(code,cleanName);
     }
   }catch(e){}
 }
@@ -3435,6 +3536,7 @@ function saveFund(){
     // Mevcut fona yeni alım — adı/türü de güncelle
     if(name) f.name=name;
   }
+  persistFundHint(code,name);
   f.lots.push({
     id: ++_fundLotCounter,
     date, nav, shares,
@@ -3641,6 +3743,21 @@ async function fetchAllFundNavs(){
     if(nav){f.curNav=nav;f.navTs=Date.now();ok++;}
     else fail.push(f.code);
     await new Promise(r=>setTimeout(r,450));
+  }
+  // Başarısız fonlar için otomatik tekrar dene (kısa aralıklarla)
+  const retryRounds=2;
+  for(let round=1; round<=retryRounds && fail.length; round++){
+    const currentFail=[...fail];
+    fail=[];
+    st.innerHTML=`<span style="animation:spin .8s linear infinite;display:inline-block">⟳</span> Yeniden deneniyor (${round}/${retryRounds})...`;
+    for(const code of currentFail){
+      const f=S.funds.find(x=>x.code===code);
+      if(!f)continue;
+      const nav=await fetchFundNav(code);
+      if(nav){f.curNav=nav;f.navTs=Date.now();ok++;}
+      else fail.push(code);
+      await new Promise(r=>setTimeout(r,350));
+    }
   }
   save();
   if(ok>0){
