@@ -3674,8 +3674,8 @@ function extractNavFromRows(rows){
   return nav>0?nav:null;
 }
 
-async function fetchFundNav(code){
-  const NAV_FETCH_TIMEOUT_MS = 15000;
+async function fetchFundNav(code,maxTimeoutMs=15000){
+  const NAV_FETCH_TIMEOUT_MS = Math.max(1000,Number(maxTimeoutMs)||15000);
   const startedAt = Date.now();
   const remainingMs = ()=>Math.max(0,NAV_FETCH_TIMEOUT_MS-(Date.now()-startedAt));
   const upperCode=(code||'').trim().toUpperCase();
@@ -3735,30 +3735,27 @@ async function fetchAllFundNavs(){
   if(!S.funds.length){alert('Önce fon ekleyin.');return;}
   const st=document.getElementById('fund-status');
   st.style.display='block';
-  st.innerHTML='<span style="animation:spin .8s linear infinite;display:inline-block">⟳</span> TEFAS\'tan NAV çekiliyor...';
+  st.innerHTML='<span style="animation:spin .8s linear infinite;display:inline-block">⟳</span> TEFAS\'tan NAV çekiliyor... (maks. 15 sn)';
+  const GLOBAL_TIMEOUT_MS=15000;
+  const startedAt=Date.now();
+  const deadline=startedAt+GLOBAL_TIMEOUT_MS;
+  const withTimeout=(promise,ms)=>Promise.race([
+    promise,
+    new Promise(resolve=>setTimeout(()=>resolve(null),Math.max(1,ms)))
+  ]);
+  const tasks=S.funds.map(async(f)=>{
+    const remain=Math.max(1,deadline-Date.now());
+    const nav=await withTimeout(fetchFundNav(f.code,remain),remain);
+    return {code:f.code,nav};
+  });
+  const results=await Promise.all(tasks);
   let ok=0,fail=[];
-  for(const f of S.funds){
-    st.innerHTML=`<span style="animation:spin .8s linear infinite;display:inline-block">⟳</span> ${f.code} sorgulanıyor...`;
-    const nav=await fetchFundNav(f.code);
-    if(nav){f.curNav=nav;f.navTs=Date.now();ok++;}
-    else fail.push(f.code);
-    await new Promise(r=>setTimeout(r,450));
-  }
-  // Başarısız fonlar için otomatik tekrar dene (kısa aralıklarla)
-  const retryRounds=2;
-  for(let round=1; round<=retryRounds && fail.length; round++){
-    const currentFail=[...fail];
-    fail=[];
-    st.innerHTML=`<span style="animation:spin .8s linear infinite;display:inline-block">⟳</span> Yeniden deneniyor (${round}/${retryRounds})...`;
-    for(const code of currentFail){
-      const f=S.funds.find(x=>x.code===code);
-      if(!f)continue;
-      const nav=await fetchFundNav(code);
-      if(nav){f.curNav=nav;f.navTs=Date.now();ok++;}
-      else fail.push(code);
-      await new Promise(r=>setTimeout(r,350));
-    }
-  }
+  results.forEach(({code,nav})=>{
+    const f=S.funds.find(x=>x.code===code);
+    if(!f)return;
+    if(nav&&nav>0){f.curNav=nav;f.navTs=Date.now();ok++;}
+    else fail.push(code);
+  });
   save();
   if(ok>0){
     st.innerHTML=`✓ ${ok} fon güncellendi${fail.length?' · '+fail.join(', ')+' bulunamadı (15 sn doldu) — Manuel girişe geçildi':''}`;
