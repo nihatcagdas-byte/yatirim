@@ -3516,34 +3516,38 @@ function getLocalTefasProxyUrl(targetUrl){
 }
 
 async function fetchTextWithProxies(url,timeoutMs=12000){
+  const startedAt=Date.now();
+  const remainingMs=()=>Math.max(0,timeoutMs-(Date.now()-startedAt));
   const endpoints=[
-    async()=>{
+    async(remain)=>{
       const localProxy=getLocalTefasProxyUrl(url);
       if(!localProxy)return null;
-      const r=await fetch(localProxy,{signal:AbortSignal.timeout(timeoutMs)});
+      const r=await fetch(localProxy,{signal:AbortSignal.timeout(remain)});
       if(!r.ok)return null;
       return await r.text();
     },
-    async()=>{
-      const r=await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(timeoutMs)});
+    async(remain)=>{
+      const r=await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(remain)});
       if(!r.ok)return null;
       return await r.text();
     },
-    async()=>{
-      const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(timeoutMs)});
+    async(remain)=>{
+      const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(remain)});
       if(!r.ok)return null;
       const j=await r.json();
       return j?.contents||null;
     },
-    async()=>{
-      const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(timeoutMs)});
+    async(remain)=>{
+      const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(remain)});
       if(!r.ok)return null;
       return await r.text();
     },
   ];
   for(const fn of endpoints){
+    const remain=remainingMs();
+    if(remain<250)break;
     try{
-      const txt=await fn();
+      const txt=await fn(remain);
       if(txt&&txt.length>10)return txt;
     }catch(e){}
   }
@@ -3569,51 +3573,53 @@ function extractNavFromRows(rows){
 }
 
 async function fetchFundNav(code){
+  const NAV_FETCH_TIMEOUT_MS = 15000;
+  const startedAt = Date.now();
+  const remainingMs = ()=>Math.max(0,NAV_FETCH_TIMEOUT_MS-(Date.now()-startedAt));
   const upperCode=(code||'').trim().toUpperCase();
   if(!upperCode)return null;
   const fromDate=_dateStr(-30);
   const toDate=_dateStr(0);
   const endpoints=[
-    async()=>{
+    async(remain)=>{
       const url=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fonttip=YAT&fontip=YAT&bastarih=${fromDate}&bittarih=${toDate}&fonkod=${upperCode}`;
-      const txt=await fetchTextWithProxies(url,12000);
+      const txt=await fetchTextWithProxies(url,remain);
       if(!txt)return null;
       const rows=parseFundRows(txt);
       return extractNavFromRows(rows);
     },
-    async()=>{
+    async(remain)=>{
       const directUrl=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fonttip=YAT&fontip=YAT&bastarih=${fromDate}&bittarih=${toDate}&fonkod=${upperCode}`;
-      const r=await fetch(directUrl,{signal:AbortSignal.timeout(10000)});
+      const r=await fetch(directUrl,{signal:AbortSignal.timeout(Math.min(remain,10000))});
       if(!r.ok)return null;
       const txt=await r.text();
       const rows=parseFundRows(txt);
       return extractNavFromRows(rows);
     },
-    async()=>{
+    async(remain)=>{
       const url=`https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=${upperCode}`;
-      const html=await fetchTextWithProxies(url,12000);
+      const html=await fetchTextWithProxies(url,remain);
       if(!html)return null;
       const m=html.match(/id="MainContent_LabelFonFiyat"[^>]*>([\d.,]+)</)||
                html.match(/Birim Pay Değeri[^>]*>[^>]*>([\d.,]+)</);
       if(m) return parseFloat(m[1].replace(',','.'))||null;
       return null;
     },
-    async()=>{
+    async(remain)=>{
       // fonbul.com API — açık
-      const r=await fetch(`https://api.fonbul.com/api/Fund/${code}/Price`,{signal:AbortSignal.timeout(10000)});
+      const r=await fetch(`https://api.fonbul.com/api/Fund/${code}/Price`,{signal:AbortSignal.timeout(Math.min(remain,10000))});
       if(!r.ok)return null;
       const j=await r.json();
       return parseFloat(j?.price||j?.Price||j?.nav||0)||null;
     },
   ];
-  for(let i=0;i<2;i++){
-    for(const fn of endpoints){
-      try{
-        const nav=await fn();
-        if(nav&&nav>0)return nav;
-      }catch(e){}
-    }
-    await new Promise(r=>setTimeout(r,250));
+  for(const fn of endpoints){
+    const remain=remainingMs();
+    if(remain<250)break;
+    try{
+      const nav=await fn(remain);
+      if(nav&&nav>0)return nav;
+    }catch(e){}
   }
   return null;
 }
@@ -3638,13 +3644,13 @@ async function fetchAllFundNavs(){
   }
   save();
   if(ok>0){
-    st.innerHTML=`✓ ${ok} fon güncellendi${fail.length?' · '+fail.join(', ')+' bulunamadı — Manuel güncelleyin':''}`;
+    st.innerHTML=`✓ ${ok} fon güncellendi${fail.length?' · '+fail.join(', ')+' bulunamadı (15 sn doldu) — Manuel girişe geçildi':''}`;
     st.style.color='var(--green)';
     if(fail.length){
       setTimeout(()=>openManualNavModal(fail),600);
     }
   } else {
-    st.innerHTML='⚠ Otomatik NAV çekilemedi — Lütfen manuel güncelleyin';
+    st.innerHTML='⚠ Otomatik NAV 15 sn içinde çekilemedi — Manuel girişe geçildi';
     st.style.color='var(--red)';
     setTimeout(()=>openManualNavModal(S.funds.map(f=>f.code)),600);
   }
