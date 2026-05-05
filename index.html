@@ -3269,7 +3269,7 @@ function downloadTemplate(){
 <!-- FON MODALLERİ -->
 <div class="ov" id="m-add-fund">
   <div class="modal" style="max-width:520px">
-    <div class="mt">📦 Fon Alımı Ekle</div>
+    <div class="mt" id="af-modal-title">📦 Fon İşlemi Ekle</div>
     <div class="fg">
       <div class="fi full">
         <label>Fon Kodu (TEFAS) *</label>
@@ -3292,8 +3292,15 @@ function downloadTemplate(){
           <option>Endeks Fonu</option><option>Diğer</option>
         </select>
       </div>
-      <div class="fi"><label>Alım Tarihi *</label><input type="date" id="af-date"></div>
-      <div class="fi"><label>Alım NAV (₺/pay) *</label><input type="number" id="af-nav" placeholder="1.234567" step="0.000001"></div>
+      <div class="fi">
+        <label>İşlem Türü *</label>
+        <select id="af-side" onchange="onFundTxnTypeChange()">
+          <option value="buy">Alım</option>
+          <option value="sell">Satış</option>
+        </select>
+      </div>
+      <div class="fi"><label id="af-date-label">Alım Tarihi *</label><input type="date" id="af-date"></div>
+      <div class="fi"><label id="af-nav-label">Alım NAV (₺/pay) *</label><input type="number" id="af-nav" placeholder="1.234567" step="0.000001"></div>
       <div class="fi"><label>Pay Adedi *</label><input type="number" id="af-shares" placeholder="1000.00" step="0.01"></div>
       <div class="fi full"><label>Not</label><input type="text" id="af-note" placeholder="Uzun vadeli birikim..."></div>
     </div>
@@ -3331,12 +3338,19 @@ function downloadTemplate(){
 
 <div class="ov" id="m-edit-fund-lot">
   <div class="modal" style="max-width:460px">
-    <div class="mt">✏️ Alım Kaydını Düzenle</div>
+    <div class="mt">✏️ Fon İşlemini Düzenle</div>
     <input type="hidden" id="efl-code">
     <input type="hidden" id="efl-id">
     <div class="fg">
-      <div class="fi"><label>Alım Tarihi *</label><input type="date" id="efl-date"></div>
-      <div class="fi"><label>Alım NAV (₺/pay) *</label><input type="number" id="efl-nav" step="0.000001"></div>
+      <div class="fi">
+        <label>İşlem Türü *</label>
+        <select id="efl-side">
+          <option value="buy">Alım</option>
+          <option value="sell">Satış</option>
+        </select>
+      </div>
+      <div class="fi"><label>İşlem Tarihi *</label><input type="date" id="efl-date"></div>
+      <div class="fi"><label>İşlem NAV (₺/pay) *</label><input type="number" id="efl-nav" step="0.000001"></div>
       <div class="fi"><label>Pay Adedi *</label><input type="number" id="efl-shares" step="0.01"></div>
       <div class="fi full"><label>Not</label><input type="text" id="efl-note"></div>
     </div>
@@ -3462,12 +3476,78 @@ function applyFundSuggestion(code){
   lookupFund();
 }
 
+function onFundTxnTypeChange(){
+  const side=(document.getElementById('af-side')?.value||'buy');
+  const isSell=side==='sell';
+  const title=document.getElementById('af-modal-title');
+  const dateLbl=document.getElementById('af-date-label');
+  const navLbl=document.getElementById('af-nav-label');
+  if(title)title.textContent=isSell?'📦 Fon Satış İşlemi':'📦 Fon Alım İşlemi';
+  if(dateLbl)dateLbl.textContent=isSell?'Satış Tarihi *':'Alım Tarihi *';
+  if(navLbl)navLbl.textContent=isSell?'Satış NAV (₺/pay) *':'Alım NAV (₺/pay) *';
+}
+
+function getFundTxSide(lot){
+  return lot?.side==='sell'?'sell':'buy';
+}
+
+function calcFundPosition(fund){
+  const txs=[...(fund?.lots||[])].sort((a,b)=>{
+    const ad=(a?.date||'').localeCompare(b?.date||'');
+    if(ad!==0)return ad;
+    return Number(a?.id||0)-Number(b?.id||0);
+  });
+  let shares=0,cost=0,realized=0;
+  txs.forEach(tx=>{
+    const side=getFundTxSide(tx);
+    const qty=Math.max(0,Number(tx?.shares)||0);
+    const nav=Math.max(0,Number(tx?.nav)||0);
+    if(!qty||!nav)return;
+    if(side==='buy'){
+      shares+=qty;
+      cost+=qty*nav;
+      return;
+    }
+    if(shares<=0)return;
+    const sellQty=Math.min(qty,shares);
+    const avgCost=shares?cost/shares:0;
+    realized+=sellQty*(nav-avgCost);
+    shares-=sellQty;
+    cost-=avgCost*sellQty;
+  });
+  return {
+    shares: Math.max(0,shares),
+    cost: Math.max(0,cost),
+    avgNav: shares>0?cost/shares:0,
+    realized
+  };
+}
+
+function hasInvalidFundSales(fund){
+  const txs=[...(fund?.lots||[])].sort((a,b)=>{
+    const ad=(a?.date||'').localeCompare(b?.date||'');
+    if(ad!==0)return ad;
+    return Number(a?.id||0)-Number(b?.id||0);
+  });
+  let shares=0;
+  for(const tx of txs){
+    const qty=Math.max(0,Number(tx?.shares)||0);
+    if(!qty)continue;
+    if(getFundTxSide(tx)==='buy'){shares+=qty;continue;}
+    if(qty>shares)return true;
+    shares-=qty;
+  }
+  return false;
+}
+
 // ── MODAL ──────────────────────────────────────
-function openAddFundModal(){
+function openAddFundModal(side='buy'){
   ['af-code','af-name','af-nav','af-shares','af-note'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('af-type').value='';
+  document.getElementById('af-side').value=(side==='sell'?'sell':'buy');
   document.getElementById('af-date').value=today();
   document.getElementById('af-lookup-result').innerHTML='';
+  onFundTxnTypeChange();
   openModal('m-add-fund');
 }
 
@@ -3514,6 +3594,7 @@ function saveFund(){
   const name=document.getElementById('af-name').value.trim();
   const navRaw=document.getElementById('af-nav').value.replace(',','.');
   const sharesRaw=document.getElementById('af-shares').value.replace(',','.');
+  const side=(document.getElementById('af-side')?.value||'buy')==='sell'?'sell':'buy';
   const nav=parseFloat(navRaw);
   const shares=parseFloat(sharesRaw);
   const dateEl=document.getElementById('af-date');
@@ -3522,9 +3603,9 @@ function saveFund(){
   const missing=[];
   if(!code) missing.push('Fon Kodu');
   if(!name) missing.push('Fon Adı');
-  if(!nav||isNaN(nav)) missing.push('Alım NAV');
+  if(!nav||isNaN(nav)) missing.push(side==='sell'?'Satış NAV':'Alım NAV');
   if(!shares||isNaN(shares)) missing.push('Pay Adedi');
-  if(!date) missing.push('Alım Tarihi');
+  if(!date) missing.push(side==='sell'?'Satış Tarihi':'Alım Tarihi');
   if(missing.length){alert('Eksik alanlar: '+missing.join(', '));return;}
 
   if(!S.funds) S.funds=[];
@@ -3536,10 +3617,15 @@ function saveFund(){
     // Mevcut fona yeni alım — adı/türü de güncelle
     if(name) f.name=name;
   }
+  if(side==='sell'){
+    const available=calcFundPosition(f).shares;
+    if(available<=0){alert('Satış için elde pay bulunmuyor.');return;}
+    if(shares>available){alert(`Satış adedi mevcut payı aşamaz (mevcut: ${available.toLocaleString('tr-TR',{maximumFractionDigits:4})}).`);return;}
+  }
   persistFundHint(code,name);
   f.lots.push({
     id: ++_fundLotCounter,
-    date, nav, shares,
+    side, date, nav, shares,
     note: document.getElementById('af-note').value.trim()
   });
   save();
@@ -3570,6 +3656,7 @@ function openEditFundLotModal(code,lotId){
   const lot=f.lots.find(l=>l.id===lotId);if(!lot)return;
   document.getElementById('efl-code').value=code;
   document.getElementById('efl-id').value=lotId;
+  document.getElementById('efl-side').value=getFundTxSide(lot);
   document.getElementById('efl-date').value=lot.date;
   document.getElementById('efl-nav').value=lot.nav;
   document.getElementById('efl-shares').value=lot.shares;
@@ -3583,17 +3670,21 @@ function saveEditFundLot(){
   const lot=f.lots.find(l=>String(l.id)===String(lotId)||l.id===lotId);if(!lot)return;
   const navRaw=document.getElementById('efl-nav').value.replace(',','.');
   const sharesRaw=document.getElementById('efl-shares').value.replace(',','.');
+  const side=(document.getElementById('efl-side')?.value||'buy')==='sell'?'sell':'buy';
   const nav=parseFloat(navRaw);
   const shares=parseFloat(sharesRaw);
   const date=document.getElementById('efl-date').value;
   if(!date||!nav||!shares){alert('Tarih, NAV ve pay zorunludur.');return;}
-  lot.date=date; lot.nav=nav; lot.shares=shares;
+  const clonedLots=f.lots.map(x=>x.id===lot.id?{...x,side,date,nav,shares}:x);
+  const testFund={...f,lots:clonedLots};
+  if(hasInvalidFundSales(testFund)){alert('Satış kayıtları toplam alım payını aşamaz.');return;}
+  lot.side=side; lot.date=date; lot.nav=nav; lot.shares=shares;
   lot.note=document.getElementById('efl-note').value.trim();
   save(); closeModal('m-edit-fund-lot'); renderFunds(); triggerTxnRefresh('funds');
 }
 
 function delFund(code){
-  if(!confirm(`"${code}" fonunu ve tüm alım kayıtlarını silmek istiyor musunuz?`))return;
+  if(!confirm(`"${code}" fonunu ve tüm işlem kayıtlarını silmek istiyor musunuz?`))return;
   S.funds=S.funds.filter(x=>x.code!==code);
   save(); renderFunds(); triggerTxnRefresh('funds');
 }
@@ -3833,20 +3924,20 @@ function renderFunds(){
   if(!area)return;
 
   // KPI'lar
-  let totalCost=0,totalCur=0,totalShares=0,lotCount=0;
+  let totalCost=0,totalCur=0,totalShares=0,lotCount=0,totalRealized=0;
   S.funds.forEach(f=>{
-    const shares=f.lots.reduce((a,l)=>a+l.shares,0);
-    const avgNav=shares?f.lots.reduce((a,l)=>a+l.nav*l.shares,0)/shares:0;
-    totalCost+=avgNav*shares;
-    totalCur+=(f.curNav||avgNav)*shares;
-    totalShares+=shares;
+    const pos=calcFundPosition(f);
+    totalCost+=pos.cost;
+    totalCur+=(f.curNav||pos.avgNav)*pos.shares;
+    totalRealized+=pos.realized;
+    totalShares+=pos.shares;
     lotCount+=f.lots.length;
   });
-  const totalPL=totalCur-totalCost;
+  const totalPL=(totalCur-totalCost)+totalRealized;
   const totalPLPct=totalCost?totalPL/totalCost*100:0;
   _setEl('fk-inv',fmt(totalCost));
   _setEl('fk-cur',fmt(totalCur));
-  _setEl('fk-lots',`${lotCount} alım`);
+  _setEl('fk-lots',`${lotCount} işlem`);
   _setEl('fk-ret',fmt(totalPL));
   _setEl('fk-retpct',`${totalPL>=0?'+':''}${totalPLPct.toFixed(2)}%`);
   _setEl('fk-cnt',S.funds.length.toString());
@@ -3865,14 +3956,37 @@ function renderFunds(){
   }
 
   area.innerHTML=S.funds.map(f=>{
-    const shares=f.lots.reduce((a,l)=>a+l.shares,0);
-    const avgNav=shares?f.lots.reduce((a,l)=>a+l.nav*l.shares,0)/shares:0;
-    const cost=avgNav*shares;
+    const pos=calcFundPosition(f);
+    const shares=pos.shares;
+    const avgNav=pos.avgNav;
+    const cost=pos.cost;
     const cur=(f.curNav||avgNav)*shares;
-    const pl=cur-cost;
+    const unrealized=cur-cost;
+    const pl=unrealized+pos.realized;
     const plPct=cost?pl/cost*100:0;
     const navStr=f.curNav?`₺${f.curNav.toFixed(6)}`:'—';
     const tsStr=f.navTs?new Date(f.navTs).toLocaleDateString('tr-TR'):'';
+
+    const txRows=[...f.lots].sort((a,b)=>{
+      const ad=(a?.date||'').localeCompare(b?.date||'');
+      if(ad!==0)return ad;
+      return Number(a?.id||0)-Number(b?.id||0);
+    }).map(l=>{
+      const isSell=getFundTxSide(l)==='sell';
+      const rowAmt=(l.nav||0)*(l.shares||0);
+      return `<tr>
+              <td><span class="badge ${isSell?'br':'bg'}">${isSell?'Satış':'Alım'}</span></td>
+              <td class="mo">${l.date}</td>
+              <td class="mo">₺${l.nav.toFixed(6)}</td>
+              <td class="mo">${(l.shares||0).toLocaleString('tr-TR',{maximumFractionDigits:4})}</td>
+              <td class="mo ${isSell?'pos':''}">${isSell?'+':''}${fmt(rowAmt)}</td>
+              <td style="font-size:.72rem;color:var(--muted)">${l.note||''}</td>
+              <td style="white-space:nowrap">
+                <button class="btn bg2 sm" onclick="openEditFundLotModal('${f.code}',${l.id})" style="margin-right:4px">✏️</button>
+                <button class="btn bd sm" onclick="delFundLot('${f.code}',${l.id})">🗑</button>
+              </td>
+            </tr>`;
+    }).join('');
 
     return `<div class="stock-card">
       <div class="stock-header">
@@ -3892,43 +4006,25 @@ function renderFunds(){
           </div>
         </div>
         <div class="stock-metrics">
-          <div class="metric"><div class="metric-lbl">Toplam Pay</div><div class="metric-val mo">${shares.toLocaleString('tr-TR',{maximumFractionDigits:4})}</div></div>
-          <div class="metric"><div class="metric-lbl">Ort. Alım NAV</div><div class="metric-val mo">₺${avgNav.toFixed(6)}</div></div>
-          <div class="metric"><div class="metric-lbl">Toplam Maliyet</div><div class="metric-val mo">${fmt(cost)}</div></div>
+          <div class="metric"><div class="metric-lbl">Net Pay</div><div class="metric-val mo">${shares.toLocaleString('tr-TR',{maximumFractionDigits:4})}</div></div>
+          <div class="metric"><div class="metric-lbl">Ort. Maliyet NAV</div><div class="metric-val mo">₺${avgNav.toFixed(6)}</div></div>
+          <div class="metric"><div class="metric-lbl">Kalan Maliyet</div><div class="metric-val mo">${fmt(cost)}</div></div>
           <div class="metric"><div class="metric-lbl">Güncel Değer</div><div class="metric-val mo">${f.curNav?fmt(cur):'—'}</div></div>
-          <div class="metric"><div class="metric-lbl">Kar/Zarar</div>
+          <div class="metric"><div class="metric-lbl">Gerçekleşen K/Z</div><div class="metric-val mo ${pos.realized>=0?'pos':'neg'}">${pos.realized>=0?'+':''}${fmt(pos.realized)}</div></div>
+          <div class="metric"><div class="metric-lbl">Toplam K/Z</div>
             <div class="metric-val mo ${pl>=0?'pos':'neg'}">${f.curNav?`${pl>=0?'+':''}${fmt(pl)}`:'—'}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
-            <button class="btn bg2 sm" onclick="openAddFundModal();document.getElementById('af-code').value='${f.code}';document.getElementById('af-name').value='${f.name.replace(/'/g,"\\'")}'" style="white-space:nowrap">+ Alım</button>
+            <button class="btn bg2 sm" onclick="openAddFundModal('buy');document.getElementById('af-code').value='${f.code}';document.getElementById('af-name').value='${f.name.replace(/'/g,"\\'")}'" style="white-space:nowrap">+ Alım</button>
+            <button class="btn bg2 sm" onclick="openAddFundModal('sell');document.getElementById('af-code').value='${f.code}';document.getElementById('af-name').value='${f.name.replace(/'/g,"\\'")}'" style="white-space:nowrap">+ Satış</button>
             <button class="btn bg2 sm" onclick="openEditFundModal('${f.code}')">✏️</button>
             <button class="btn bd sm" onclick="delFund('${f.code}')">🗑</button>
           </div>
         </div>
       </div>
       <table>
-        <thead><tr><th>Alım Tarihi</th><th>Alım NAV (₺)</th><th>Pay Adedi</th><th>Maliyet (₺)</th><th>Güncel Değer</th><th>Kar/Zarar</th><th>Not</th><th></th></tr></thead>
-        <tbody>
-          ${f.lots.sort((a,b)=>a.date.localeCompare(b.date)).map(l=>{
-            const lCur=(f.curNav||l.nav)*l.shares;
-            const lCost=l.nav*l.shares;
-            const lPl=lCur-lCost;
-            const lPlPct=lCost?lPl/lCost*100:0;
-            return `<tr>
-              <td class="mo">${l.date}</td>
-              <td class="mo">₺${l.nav.toFixed(6)}</td>
-              <td class="mo">${l.shares.toLocaleString('tr-TR',{maximumFractionDigits:4})}</td>
-              <td class="mo">${fmt(lCost)}</td>
-              <td class="mo">${f.curNav?fmt(lCur):'<span style="color:var(--muted)">—</span>'}</td>
-              <td>${f.curNav?`<span class="${lPl>=0?'pos':'neg'}">${lPl>=0?'+':''}${fmt(lPl)} <small style="opacity:.7">(${lPlPct.toFixed(2)}%)</small></span>`:'<span style="color:var(--muted)">—</span>'}</td>
-              <td style="font-size:.72rem;color:var(--muted)">${l.note||''}</td>
-              <td style="white-space:nowrap">
-                <button class="btn bg2 sm" onclick="openEditFundLotModal('${f.code}',${l.id})" style="margin-right:4px">✏️</button>
-                <button class="btn bd sm" onclick="delFundLot('${f.code}',${l.id})">🗑</button>
-              </td>
-            </tr>`;
-          }).join('')}
-        </tbody>
+        <thead><tr><th>İşlem</th><th>Tarih</th><th>NAV (₺)</th><th>Pay</th><th>Tutar (₺)</th><th>Not</th><th></th></tr></thead>
+        <tbody>${txRows}</tbody>
       </table>
     </div>`;
   }).join('');
@@ -3945,10 +4041,9 @@ function renderFundDonut(){
   if(!el||!S.funds.length){if(leg)leg.innerHTML='';return;}
   const COLORS=['#00d4aa','#f5c518','#e05252','#4a9eff','#a855f7','#f97316','#10b981','#ec4899','#06b6d4','#84cc16'];
   const data=S.funds.map(f=>{
-    const shares=f.lots.reduce((a,l)=>a+l.shares,0);
-    const avgNav=shares?f.lots.reduce((a,l)=>a+l.nav*l.shares,0)/shares:0;
-    return{code:f.code,val:(f.curNav||avgNav)*shares};
-  });
+    const pos=calcFundPosition(f);
+    return{code:f.code,val:(f.curNav||pos.avgNav)*pos.shares};
+  }).filter(x=>x.val>0);
   const total=data.reduce((a,d)=>a+d.val,0)||1;
   if(_fundDonutChart)_fundDonutChart.destroy();
   _fundDonutChart=new Chart(el,{
@@ -3963,12 +4058,11 @@ function renderFundBar(){
   const el=document.getElementById('fund-bar');
   if(!el||!S.funds.length)return;
   const data=S.funds.map(f=>{
-    const shares=f.lots.reduce((a,l)=>a+l.shares,0);
-    const avgNav=shares?f.lots.reduce((a,l)=>a+l.nav*l.shares,0)/shares:0;
-    const cost=avgNav*shares;
-    const cur=(f.curNav||avgNav)*shares;
-    return{code:f.code,pct:cost?(cur-cost)/cost*100:0};
-  }).sort((a,b)=>b.pct-a.pct);
+    const pos=calcFundPosition(f);
+    const cost=pos.cost;
+    const cur=(f.curNav||pos.avgNav)*pos.shares;
+    return{code:f.code,pct:cost?(cur-cost+pos.realized)/cost*100:0};
+  }).filter(x=>Number.isFinite(x.pct)).sort((a,b)=>b.pct-a.pct);
   if(_fundBarChart)_fundBarChart.destroy();
   _fundBarChart=new Chart(el,{
     type:'bar',
