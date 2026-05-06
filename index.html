@@ -3983,12 +3983,20 @@ function renderFunds(){
     }).map(l=>{
       const isSell=getFundTxSide(l)==='sell';
       const rowAmt=(l.nav||0)*(l.shares||0);
+      // O alımın NAV'ına göre güncel kar/zarar yüzdesi
+      let plCell='<span style="color:var(--muted)">—</span>';
+      if(!isSell && f.curNav && l.nav){
+        const lotPL=(f.curNav-l.nav)*(l.shares||0);
+        const lotPct=((f.curNav-l.nav)/l.nav*100).toFixed(2);
+        plCell=`<span class="${lotPL>=0?'pos':'neg'}">${lotPL>=0?'+':''}${fmt(lotPL)} <small style="opacity:.7">(${lotPct}%)</small></span>`;
+      }
       return `<tr>
               <td><span class="badge ${isSell?'br':'bg'}">${isSell?'Satış':'Alım'}</span></td>
               <td class="mo">${l.date}</td>
               <td class="mo">₺${l.nav.toFixed(6)}</td>
               <td class="mo">${(l.shares||0).toLocaleString('tr-TR',{maximumFractionDigits:4})}</td>
               <td class="mo ${isSell?'pos':''}">${isSell?'+':''}${fmt(rowAmt)}</td>
+              <td>${plCell}</td>
               <td style="font-size:.72rem;color:var(--muted)">${l.note||''}</td>
               <td style="white-space:nowrap">
                 <button class="btn bg2 sm" onclick="openEditFundLotModal('${f.code}',${l.id})" style="margin-right:4px">✏️</button>
@@ -4032,7 +4040,7 @@ function renderFunds(){
         </div>
       </div>
       <table>
-        <thead><tr><th>İşlem</th><th>Tarih</th><th>NAV (₺)</th><th>Pay</th><th>Tutar (₺)</th><th>Not</th><th></th></tr></thead>
+        <thead><tr><th>İşlem</th><th>Tarih</th><th>NAV (₺)</th><th>Pay</th><th>Tutar (₺)</th><th data-tip="O alıma göre güncel kar/zarar">K/Z</th><th>Not</th><th></th></tr></thead>
         <tbody>${txRows}</tbody>
       </table>
     </div>`;
