@@ -1712,8 +1712,13 @@ function renderStocks(){
     const avg=l?s.lots.reduce((a,x)=>a+x.price*x.lots,0)/l:0;
     const cost=avg*l;
     const sd=S.dividends.filter(d=>d.ticker===s.ticker).reduce((a,d)=>a+d.total,0);
-    const cp=S.prices[s.ticker]?.price||s.lots.filter(x=>x.curPrice).slice(-1)[0]?.curPrice;
-    const pl=cp?(cp-avg)*l:null;
+    const cpFromApi = S.prices[s.ticker]?.price;
+    const lastLotCurPrice = s.lots
+      .map(x=>x?.curPrice==null?NaN:Number(x.curPrice))
+      .filter(v=>Number.isFinite(v))
+      .slice(-1)[0];
+    const cp = Number.isFinite(cpFromApi)?Number(cpFromApi):(Number.isFinite(lastLotCurPrice)?lastLotCurPrice:null);
+    const pl=Number.isFinite(cp)?(cp-avg)*l:null;
     const ex=s.lots.map(x=>x.expDiv).filter(Boolean);
     const yld=ex.length&&avg?(ex.reduce((a,b)=>a+b,0)/ex.length)/avg*100:null;
     return {s, l, avg, cost, sd, cp, pl, yld, ticker:s.ticker, name:s.name, sector:s.sector||''};
@@ -1755,13 +1760,13 @@ function renderStocks(){
 
   // KARTLAR
   area.innerHTML=rows.map(({s,l,avg,cost,sd,cp,pl,yld})=>{
-    const pp=cp?((cp-avg)/avg*100).toFixed(1):null;
+    const pp=(Number.isFinite(cp)&&avg)?((cp-avg)/avg*100).toFixed(1):null;
     return `<div class="stock-card">
       <div class="stock-header">
         <div>
           <div class="stock-ticker-big">${s.ticker}</div>
           <div style="font-size:.8rem;color:var(--muted);margin-top:3px">${s.name}${s.sector?` · <span style="color:var(--muted2)">${s.sector}</span>`:''}</div>
-          ${cp?`<div style="margin-top:8px;display:flex;align-items:center;gap:10px">
+          ${Number.isFinite(cp)?`<div style="margin-top:8px;display:flex;align-items:center;gap:10px">
             <span class="mo" style="font-size:1.1rem;font-weight:700">${fmtN(cp)}</span>
             ${pl!==null?`<span class="badge ${pl>=0?'bg':'br'}">${pl>=0?'▲':'▼'} ${pl>=0?'+':''}${fmt(pl)} (${pp}%)</span>`:''}
           </div>`:''}
@@ -1796,15 +1801,19 @@ function renderStocks(){
         <thead><tr><th>Alım Tarihi</th><th>Alım Fiyatı</th><th>Adet</th><th>Maliyet</th><th>Güncel Fiyat</th><th>Kar/Zarar</th><th>Bek. Temettü/Adet</th><th>Not</th><th></th></tr></thead>
         <tbody>
           ${s.lots.sort((a,b)=>a.date.localeCompare(b.date)).map(x=>{
-            const xcp=cp||x.curPrice;
+            const xcp = Number.isFinite(cp) ? cp : (x?.curPrice==null?null:Number(x.curPrice));
             let plH='<span style="color:var(--muted)">—</span>';
-            if(xcp){const p2=(xcp-x.price)*x.lots,pp2=((xcp-x.price)/x.price*100).toFixed(1);plH=`<span class="${p2>=0?'pos':'neg'}">${p2>=0?'+':''}${fmt(p2)} <small style="opacity:.7">(${pp2}%)</small></span>`;}
+            if(Number.isFinite(xcp)){
+              const p2=(xcp-x.price)*x.lots;
+              const pp2 = x.price ? ((xcp-x.price)/x.price*100).toFixed(1) : null;
+              plH=`<span class="${p2>=0?'pos':'neg'}">${p2>=0?'+':''}${fmt(p2)}${pp2!==null?` <small style="opacity:.7">(${pp2}%)</small>`:''}</span>`;
+            }
             return `<tr>
               <td class="mo">${x.date}</td>
               <td class="mo">${fmtN(x.price)}</td>
               <td class="mo">${x.lots.toLocaleString('tr-TR')}</td>
               <td class="mo">${fmt(x.price*x.lots)}</td>
-              <td class="mo">${xcp?fmtN(xcp):'<span style="color:var(--muted)">—</span>'}</td>
+              <td class="mo">${Number.isFinite(xcp)?fmtN(xcp):'<span style="color:var(--muted)">—</span>'}</td>
               <td>${plH}</td>
               <td class="mo">${x.expDiv?fmtN(x.expDiv):'<span style="color:var(--muted)">—</span>'}</td>
               <td style="max-width:130px;font-size:.72rem;color:var(--muted)">${x.note||''}</td>
