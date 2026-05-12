@@ -250,9 +250,16 @@ select option{background:var(--sf2)}
 
 /* ═══ STOCK CARD ═══ */
 .stock-card{background:var(--sf);border:1px solid var(--br);border-radius:18px;margin-bottom:18px;overflow:hidden}
-.stock-card.fund-draggable{cursor:grab}
 .stock-card.fund-dragging{opacity:.55;transform:scale(.995)}
 .stock-card.fund-drop-target{border-color:var(--ac);box-shadow:0 0 0 1px rgba(0,212,170,.35),0 10px 30px rgba(0,212,170,.12)}
+.fund-drag-handle{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 10px;
+  border-radius:10px;border:1px dashed rgba(0,212,170,.35);
+  background:rgba(0,212,170,.06);color:var(--ac);
+  font-size:.68rem;font-weight:700;cursor:grab;
+  -webkit-user-select:none;user-select:none
+}
+.fund-drag-handle:active{cursor:grabbing}
 .stock-header{padding:18px 20px 16px;display:flex;justify-content:space-between;align-items:flex-start;
   flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--br);
   background:linear-gradient(135deg,var(--sf2) 0%,var(--sf) 100%)}
@@ -1833,12 +1840,7 @@ function renderStocks(){
   // KARTLAR
   area.innerHTML=rows.map(({s,l,avg,cost,sd,cp,pl,yld})=>{
     const pp=(Number.isFinite(cp)&&avg)?((cp-avg)/avg*100).toFixed(1):null;
-    return `<div class="stock-card fund-draggable" draggable="true"
-      ondragstart="onFundDragStart(event,'${f.code}')"
-      ondragover="onFundDragOver(event,'${f.code}')"
-      ondragleave="onFundDragLeave(event)"
-      ondrop="onFundDrop(event,'${f.code}')"
-      ondragend="onFundDragEnd()">
+    return `<div class="stock-card">
       <div class="stock-header">
         <div>
           <div class="stock-ticker-big">${s.ticker}</div>
@@ -4141,7 +4143,10 @@ function renderFunds(){
             </tr>`;
     }).join('');
 
-    return `<div class="stock-card">
+    return `<div class="stock-card"
+      ondragover="onFundDragOver(event,'${f.code}')"
+      ondragleave="onFundDragLeave(event)"
+      ondrop="onFundDrop(event,'${f.code}')">
       <div class="stock-header">
         <div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -4159,6 +4164,9 @@ function renderFunds(){
           </div>
         </div>
         <div class="stock-metrics">
+          <div class="fund-drag-handle" draggable="true"
+            ondragstart="onFundDragStart(event,'${f.code}')"
+            ondragend="onFundDragEnd()">↕ Sürükle</div>
           <div class="metric"><div class="metric-lbl">Net Pay</div><div class="metric-val mo">${shares.toLocaleString('tr-TR',{maximumFractionDigits:4})}</div></div>
           <div class="metric"><div class="metric-lbl">Ort. Maliyet NAV</div><div class="metric-val mo">₺${avgNav.toFixed(6)}</div></div>
           <div class="metric"><div class="metric-lbl">Yatırılan Maliyet</div><div class="metric-val mo">${fmt(pos.investedCost)}</div></div>
