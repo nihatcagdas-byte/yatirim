@@ -4034,6 +4034,7 @@ function renderFunds(){
           <div class="metric"><div class="metric-lbl">Kalan Maliyet</div><div class="metric-val mo">${fmt(cost)}</div></div>
           <div class="metric"><div class="metric-lbl">Güncel Değer</div><div class="metric-val mo">${f.curNav?fmt(cur):'—'}</div></div>
           <div class="metric"><div class="metric-lbl">Gerçekleşen K/Z</div><div class="metric-val mo ${pos.realized>=0?'pos':'neg'}">${pos.realized>=0?'+':''}${fmt(pos.realized)}</div></div>
+          <div class="metric"><div class="metric-lbl">Anlık K/Z</div><div class="metric-val mo ${unrealized>=0?'pos':'neg'}">${f.curNav?`${unrealized>=0?'+':''}${fmt(unrealized)}`:'—'}</div></div>
           <div class="metric"><div class="metric-lbl">Toplam K/Z</div>
             <div class="metric-val mo ${pl>=0?'pos':'neg'}">${f.curNav?`${pl>=0?'+':''}${fmt(pl)}`:'—'}</div>
           </div>
