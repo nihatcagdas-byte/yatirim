@@ -313,7 +313,12 @@ th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
 th.sortable:hover{color:var(--text);background:var(--sf3)}
 th.sortable .sort-icon{display:inline-block;margin-left:5px;font-size:.65rem;opacity:.35;transition:opacity .15s}
 th.sortable:hover .sort-icon{opacity:.7}
-th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)}
+th.sortable.asc,th.sortable.desc{
+  color:var(--text);
+  background:linear-gradient(180deg,rgba(0,212,170,.09),rgba(0,212,170,.03));
+  box-shadow:inset 0 -1px 0 rgba(0,212,170,.35);
+}
+th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac);font-size:.72rem}
 
 /* SORT CHIP */
 .sort-chip{padding:5px 12px;border-radius:20px;font-size:.72rem;font-weight:600;
@@ -1426,6 +1431,23 @@ function sortTable(col){
     window._ptSort.dir=['ticker'].includes(col)?'asc':'desc';
   }
   renderDashboard();
+}
+
+function getFundTxSortState(code){
+  if(!window._fundTxSort) window._fundTxSort={};
+  if(!window._fundTxSort[code]) window._fundTxSort[code]={col:'date',dir:'asc'};
+  return window._fundTxSort[code];
+}
+
+function sortFundTx(code,col){
+  const sortState=getFundTxSortState(code);
+  if(sortState.col===col){
+    sortState.dir=sortState.dir==='asc'?'desc':'asc';
+  }else{
+    sortState.col=col;
+    sortState.dir=['date','side','note'].includes(col)?'asc':'desc';
+  }
+  renderFunds();
 }
 
 // ══════════════════════════════════════════════
@@ -3979,14 +4001,69 @@ function renderFunds(){
     const plPct=cost?pl/cost*100:0;
     const navStr=f.curNav?`₺${f.curNav.toFixed(6)}`:'—';
     const tsStr=f.navTs?new Date(f.navTs).toLocaleDateString('tr-TR'):'';
+    const txSort=getFundTxSortState(f.code);
 
-    const txRows=[...f.lots].sort((a,b)=>{
-      const ad=(a?.date||'').localeCompare(b?.date||'');
-      if(ad!==0)return ad;
-      return Number(a?.id||0)-Number(b?.id||0);
-    }).map(l=>{
+    const txCols=[
+      {key:'side',label:'İşlem'},
+      {key:'date',label:'Tarih'},
+      {key:'nav',label:'NAV (₺)'},
+      {key:'shares',label:'Pay'},
+      {key:'amount',label:'Tutar (₺)'},
+      {key:'pl',label:'K/Z',tip:'O alıma göre güncel kar/zarar'},
+      {key:'note',label:'Not'},
+      {key:'_act',label:'',sort:false},
+    ];
+
+    const txHead=txCols.map(c=>{
+      if(c.sort===false) return `<th>${c.label}</th>`;
+      const active=txSort.col===c.key;
+      const dir=active?txSort.dir:'asc';
+      const icon=active?(dir==='asc'?'▲':'▼'):'⇅';
+      return `<th class="sortable${active?' '+dir:''}" onclick="sortFundTx('${f.code}','${c.key}')" ${c.tip?`data-tip="${c.tip}"`:''}>${c.label} <span class="sort-icon">${icon}</span></th>`;
+    }).join('');
+
+    const txData=[...f.lots].map(l=>{
       const isSell=getFundTxSide(l)==='sell';
       const rowAmt=(l.nav||0)*(l.shares||0);
+      const lotPLVal=(!isSell && f.curNav && l.nav)?(f.curNav-l.nav)*(l.shares||0):null;
+      return {l,isSell,rowAmt,lotPLVal};
+    });
+
+    txData.sort((a,b)=>{
+      const dir=txSort.dir;
+      const mul=dir==='asc'?1:-1;
+      const nullLastNum=(va,vb)=>{
+        const aNull=va===null||va===undefined||!Number.isFinite(va);
+        const bNull=vb===null||vb===undefined||!Number.isFinite(vb);
+        if(aNull&&bNull)return 0;
+        if(aNull)return 1;
+        if(bNull)return -1;
+        return (va-vb)*mul;
+      };
+
+      let cmp=0;
+      if(txSort.col==='side'){
+        cmp=(a.isSell?'sell':'buy').localeCompare(b.isSell?'sell':'buy');
+      }else if(txSort.col==='date'){
+        cmp=(a.l?.date||'').localeCompare(b.l?.date||'');
+      }else if(txSort.col==='nav'){
+        cmp=nullLastNum(Number(a.l?.nav)||0,Number(b.l?.nav)||0);
+      }else if(txSort.col==='shares'){
+        cmp=nullLastNum(Number(a.l?.shares)||0,Number(b.l?.shares)||0);
+      }else if(txSort.col==='amount'){
+        cmp=nullLastNum(a.rowAmt,b.rowAmt);
+      }else if(txSort.col==='pl'){
+        cmp=nullLastNum(a.lotPLVal,b.lotPLVal);
+      }else if(txSort.col==='note'){
+        cmp=(a.l?.note||'').localeCompare(b.l?.note||'');
+      }else{
+        cmp=(a.l?.date||'').localeCompare(b.l?.date||'');
+      }
+      if(cmp!==0)return cmp*(['nav','shares','amount','pl'].includes(txSort.col)?1:mul);
+      return (Number(a.l?.id||0)-Number(b.l?.id||0))*mul;
+    });
+
+    const txRows=txData.map(({l,isSell,rowAmt})=>{
       // O alımın NAV'ına göre güncel kar/zarar yüzdesi
       let plCell='<span style="color:var(--muted)">—</span>';
       if(!isSell && f.curNav && l.nav){
@@ -4047,7 +4124,7 @@ function renderFunds(){
         </div>
       </div>
       <table>
-        <thead><tr><th>İşlem</th><th>Tarih</th><th>NAV (₺)</th><th>Pay</th><th>Tutar (₺)</th><th data-tip="O alıma göre güncel kar/zarar">K/Z</th><th>Not</th><th></th></tr></thead>
+        <thead><tr>${txHead}</tr></thead>
         <tbody>${txRows}</tbody>
       </table>
     </div>`;
