@@ -3506,7 +3506,7 @@ function calcFundPosition(fund){
     if(ad!==0)return ad;
     return Number(a?.id||0)-Number(b?.id||0);
   });
-  let shares=0,cost=0,realized=0;
+  let shares=0,cost=0,realized=0,investedCost=0,soldCost=0;
   txs.forEach(tx=>{
     const side=getFundTxSide(tx);
     const qty=Math.max(0,Number(tx?.shares)||0);
@@ -3515,12 +3515,14 @@ function calcFundPosition(fund){
     if(side==='buy'){
       shares+=qty;
       cost+=qty*nav;
+      investedCost+=qty*nav;
       return;
     }
     if(shares<=0)return;
     const sellQty=Math.min(qty,shares);
     const avgCost=shares?cost/shares:0;
     realized+=sellQty*(nav-avgCost);
+    soldCost+=avgCost*sellQty;
     shares-=sellQty;
     cost-=avgCost*sellQty;
   });
@@ -3528,7 +3530,9 @@ function calcFundPosition(fund){
     shares: Math.max(0,shares),
     cost: Math.max(0,cost),
     avgNav: shares>0?cost/shares:0,
-    realized
+    realized,
+    investedCost: Math.max(0,investedCost),
+    soldCost: Math.max(0,soldCost)
   };
 }
 
@@ -4025,6 +4029,8 @@ function renderFunds(){
         <div class="stock-metrics">
           <div class="metric"><div class="metric-lbl">Net Pay</div><div class="metric-val mo">${shares.toLocaleString('tr-TR',{maximumFractionDigits:4})}</div></div>
           <div class="metric"><div class="metric-lbl">Ort. Maliyet NAV</div><div class="metric-val mo">₺${avgNav.toFixed(6)}</div></div>
+          <div class="metric"><div class="metric-lbl">Yatırılan Maliyet</div><div class="metric-val mo">${fmt(pos.investedCost)}</div></div>
+          <div class="metric"><div class="metric-lbl">Satılan Maliyet</div><div class="metric-val mo">${fmt(pos.soldCost)}</div></div>
           <div class="metric"><div class="metric-lbl">Kalan Maliyet</div><div class="metric-val mo">${fmt(cost)}</div></div>
           <div class="metric"><div class="metric-lbl">Güncel Değer</div><div class="metric-val mo">${f.curNav?fmt(cur):'—'}</div></div>
           <div class="metric"><div class="metric-lbl">Gerçekleşen K/Z</div><div class="metric-val mo ${pos.realized>=0?'pos':'neg'}">${pos.realized>=0?'+':''}${fmt(pos.realized)}</div></div>
