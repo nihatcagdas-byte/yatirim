@@ -250,6 +250,9 @@ select option{background:var(--sf2)}
 
 /* ═══ STOCK CARD ═══ */
 .stock-card{background:var(--sf);border:1px solid var(--br);border-radius:18px;margin-bottom:18px;overflow:hidden}
+.stock-card.fund-draggable{cursor:grab}
+.stock-card.fund-dragging{opacity:.55;transform:scale(.995)}
+.stock-card.fund-drop-target{border-color:var(--ac);box-shadow:0 0 0 1px rgba(0,212,170,.35),0 10px 30px rgba(0,212,170,.12)}
 .stock-header{padding:18px 20px 16px;display:flex;justify-content:space-between;align-items:flex-start;
   flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--br);
   background:linear-gradient(135deg,var(--sf2) 0%,var(--sf) 100%)}
@@ -1450,6 +1453,53 @@ function sortFundTx(code,col){
   renderFunds();
 }
 
+function clearFundDragClasses(){
+  document.querySelectorAll('.stock-card.fund-dragging,.stock-card.fund-drop-target')
+    .forEach(el=>el.classList.remove('fund-dragging','fund-drop-target'));
+}
+
+function onFundDragStart(ev,code){
+  window._dragFundCode=code;
+  if(ev.dataTransfer){
+    ev.dataTransfer.effectAllowed='move';
+    ev.dataTransfer.setData('text/plain',code);
+  }
+  ev.currentTarget.classList.add('fund-dragging');
+}
+
+function onFundDragOver(ev,code){
+  if(window._dragFundCode===code)return;
+  ev.preventDefault();
+  if(ev.dataTransfer) ev.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.stock-card.fund-drop-target')
+    .forEach(el=>{if(el!==ev.currentTarget)el.classList.remove('fund-drop-target');});
+  ev.currentTarget.classList.add('fund-drop-target');
+}
+
+function onFundDragLeave(ev){
+  ev.currentTarget.classList.remove('fund-drop-target');
+}
+
+function onFundDrop(ev,targetCode){
+  ev.preventDefault();
+  const sourceCode=(ev.dataTransfer&&ev.dataTransfer.getData('text/plain'))||window._dragFundCode;
+  if(!sourceCode||sourceCode===targetCode){clearFundDragClasses();window._dragFundCode=null;return;}
+  const from=S.funds.findIndex(f=>f.code===sourceCode);
+  const to=S.funds.findIndex(f=>f.code===targetCode);
+  if(from<0||to<0){clearFundDragClasses();window._dragFundCode=null;return;}
+  const [moved]=S.funds.splice(from,1);
+  S.funds.splice(to,0,moved);
+  clearFundDragClasses();
+  window._dragFundCode=null;
+  save();
+  renderFunds();
+}
+
+function onFundDragEnd(){
+  clearFundDragClasses();
+  window._dragFundCode=null;
+}
+
 // ══════════════════════════════════════════════
 // AY SEÇİCİ
 // ══════════════════════════════════════════════
@@ -1783,7 +1833,12 @@ function renderStocks(){
   // KARTLAR
   area.innerHTML=rows.map(({s,l,avg,cost,sd,cp,pl,yld})=>{
     const pp=(Number.isFinite(cp)&&avg)?((cp-avg)/avg*100).toFixed(1):null;
-    return `<div class="stock-card">
+    return `<div class="stock-card fund-draggable" draggable="true"
+      ondragstart="onFundDragStart(event,'${f.code}')"
+      ondragover="onFundDragOver(event,'${f.code}')"
+      ondragleave="onFundDragLeave(event)"
+      ondrop="onFundDrop(event,'${f.code}')"
+      ondragend="onFundDragEnd()">
       <div class="stock-header">
         <div>
           <div class="stock-ticker-big">${s.ticker}</div>
