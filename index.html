@@ -423,6 +423,13 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
       <div class="kcard"><span class="kcard-icon">🏆</span><div class="klabel">Toplam Getiri</div><div class="kval mo" id="k-ret">₺0</div><div class="ktrend neu" id="k-retpct">K/Z + Temettü</div></div>
     </div>
 
+    <!-- HİSSE / FON / TOPLAM -->
+    <div class="stat-row" id="portfolio-split" style="margin-bottom:20px;display:none">
+      <div class="stat-chip"><div class="stat-chip-lbl">Hisse Güncel Değer</div><div class="stat-chip-val mo" id="k-stock-val">₺0</div></div>
+      <div class="stat-chip"><div class="stat-chip-lbl">Fon Güncel Değer</div><div class="stat-chip-val mo" id="k-fund-val">₺0</div></div>
+      <div class="stat-chip"><div class="stat-chip-lbl">Toplam Portföy</div><div class="stat-chip-val mo pos" id="k-total-val">₺0</div></div>
+    </div>
+
     <!-- DÖVİZ SATIRI -->
     <div id="currency-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
       <div class="cb" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
@@ -496,7 +503,7 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
           <div class="ct" style="margin-bottom:14px">Portföy <span>Dağılımı</span></div>
           <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
             <div class="donut-wrap"><canvas id="donutChart"></canvas>
-              <div class="donut-center"><div class="donut-val mo" id="donut-val">0</div><div class="donut-lbl">Hisse</div></div>
+              <div class="donut-center"><div class="donut-val mo" id="donut-val">0</div><div class="donut-lbl" id="donut-lbl">Portföy</div></div>
             </div>
             <div class="donut-legend" id="donut-legend" style="flex:1;min-width:100px">
               <div style="color:var(--muted);font-size:.75rem">Hisse ekleyin</div>
@@ -577,10 +584,13 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
         <div class="pg-title">Fon <span>Defteri</span></div>
         <div class="pg-sub">TEFAS yatırım fonları — NAV takibi ve getiri analizi</div>
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn bg2" onclick="fetchAllFundNavs()">🔄 NAV Güncelle</button>
+        <button class="btn bg2" onclick="exportExcelFunds()">⬇ CSV</button>
+        <button class="btn bg2" onclick="openImportFunds()">📥 CSV İçe Aktar</button>
         <button class="btn bp" onclick="openAddFundModal()">+ Fon Ekle</button>
       </div>
+      <input type="file" id="fund-import-file" accept=".csv" style="display:none">
     </div>
 
     <!-- ÖZET KPI'LAR -->
@@ -594,17 +604,33 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
     <!-- DURUM SATIRI -->
     <div id="fund-status" style="display:none;margin-bottom:14px;font-size:.78rem;font-family:var(--fm);padding:8px 14px;background:var(--sf2);border-radius:8px;border:1px solid var(--br)"></div>
 
-    <!-- SEKTÖR/TÜR DAĞILIMI + GRAFİK -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px">
+    <!-- GRAFİKLER -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px">
       <div class="cb">
         <div class="ch"><div class="ct">🍩 Fon <span>Dağılımı</span></div></div>
-        <div style="position:relative;height:220px"><canvas id="fund-donut"></canvas></div>
+        <div style="position:relative;height:200px"><canvas id="fund-donut"></canvas></div>
         <div id="fund-donut-legend" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
       <div class="cb">
         <div class="ch"><div class="ct">📈 Getiri <span>Karşılaştırma</span></div></div>
-        <div style="position:relative;height:220px"><canvas id="fund-bar"></canvas></div>
+        <div style="position:relative;height:200px"><canvas id="fund-bar"></canvas></div>
       </div>
+      <div class="cb">
+        <div class="ch"><div class="ct">🏷️ Tür <span>Dağılımı</span></div></div>
+        <div style="position:relative;height:200px"><canvas id="fund-type-chart"></canvas></div>
+        <div id="fund-type-legend" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;font-size:.72rem"></div>
+      </div>
+    </div>
+
+    <!-- FON DAĞITIMLARI -->
+    <div class="cb" style="margin-bottom:18px">
+      <div class="ch">
+        <div class="ct">💸 Fon <span>Dağıtımları</span></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn bp sm" onclick="openFundDistModal()">+ Dağıtım Ekle</button>
+        </div>
+      </div>
+      <div id="fund-dist-area"><div class="empty" style="padding:24px"><div class="et">Henüz fon dağıtım kaydı yok.</div></div></div>
     </div>
 
     <!-- FON KARTLARI -->
@@ -622,8 +648,9 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
         <div class="pg-title">Temettü <span>Takvimi</span></div>
         <div class="pg-sub">Alınan ve beklenen tüm ödemeler</div>
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn bg2" id="cal-view-btn" onclick="toggleCalView()">🗓 Zaman Çizelgesi</button>
+        <button class="btn bg2" onclick="openFundDistModal()">+ Fon Dağıtımı</button>
         <button class="btn bp" onclick="openDivModal()">+ Temettü Ekle</button>
       </div>
     </div>
@@ -752,6 +779,19 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
       </div>
     </div>
 
+    <!-- FON KARŞILAŞTIRMA -->
+    <div class="cb" style="margin-bottom:18px">
+      <div class="ch">
+        <div class="ct">Fon <span>Karşılaştırma</span></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="fcmp-a" style="width:130px" onchange="renderFundCompare()"><option value="">Fon A</option></select>
+          <span style="color:var(--muted);font-size:.78rem;font-weight:700">VS</span>
+          <select id="fcmp-b" style="width:130px" onchange="renderFundCompare()"><option value="">Fon B</option></select>
+        </div>
+      </div>
+      <div id="fcmp-result"><div class="empty" style="padding:24px 0"><div class="et">İki farklı fon seçin</div></div></div>
+    </div>
+
     <!-- KARŞILAŞTIRMA -->
     <div class="cb">
       <div class="ch">
@@ -835,8 +875,11 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
           <div style="font-size:.8rem;color:var(--muted2);line-height:1.75;margin-bottom:10px">
             Yahoo Finance üzerinden çekilir. BIST hisseleri için <strong style="color:var(--text)">.IS</strong> eklenir (örn: TUPRS.IS). Veriler 15 dk gecikmeli olabilir.
           </div>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;color:var(--text);text-transform:none;letter-spacing:0">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;color:var(--text);text-transform:none;letter-spacing:0;margin-bottom:8px">
             <input type="checkbox" id="auto-price" onchange="saveSettings()" style="width:auto;padding:0;width:16px;height:16px"> Açılışta otomatik fiyat güncelle
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;color:var(--text);text-transform:none;letter-spacing:0">
+            <input type="checkbox" id="auto-nav" onchange="saveSettings()" style="width:auto;padding:0;width:16px;height:16px"> Açılışta otomatik fon NAV güncelle
           </label>
         </div>
         <div class="ss">
@@ -849,6 +892,8 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
             <button class="btn bp" onclick="openImportExcel()">📥 CSV / Excel'den İçe Aktar</button>
             <button class="btn bg2" onclick="exportExcelStocks()">📤 Hisse Alımlarını İndir (.csv)</button>
             <button class="btn bg2" onclick="exportExcelDivs()">📤 Temettüleri İndir (.csv)</button>
+            <button class="btn bg2" onclick="exportExcelFunds()">📤 Fon İşlemlerini İndir (.csv)</button>
+            <button class="btn bg2" onclick="openImportFunds()">📥 Fon CSV İçe Aktar</button>
           </div>
           <div style="background:var(--sf2);border:1px solid var(--br);border-radius:10px;padding:12px 14px">
             <div style="font-size:.72rem;font-weight:700;color:var(--ac);margin-bottom:8px;letter-spacing:.5px">📋 ŞABLON KOLON SIRALARI</div>
@@ -857,6 +902,8 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
               Hisse Kodu | Şirket Adı | Sektör | Alım Tarihi | Alım Fiyatı | Adet | Toplam Maliyet | Beklenen Temettü/Adet | Not<br><br>
               <strong style="color:var(--text)">Temettü Ödemeleri:</strong><br>
               Hisse Kodu | Ödeme Tarihi | Hisse Başına Temettü | Toplam Alınan | Dönem<br><br>
+              <strong style="color:var(--text)">Fon İşlemleri:</strong><br>
+              Fon Kodu | Fon Adı | Tür | İşlem | Tarih | NAV | Pay | Not<br><br>
               <strong style="color:var(--text)">Tarih formatı:</strong> YYYY-AA-GG (2024-03-15) veya GG.AA.YYYY (15.03.2024)
             </div>
             <button class="btn bg2 sm" style="margin-top:10px" onclick="downloadTemplate()">⬇ Boş Şablon İndir</button>
@@ -1064,7 +1111,7 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
   <div class="modal">
     <div class="mt">📝 Not Ekle</div>
     <div class="fg">
-      <div class="fi"><label>Hisse Kodu (opsiyonel)</label><input type="text" id="n-tick" placeholder="TUPRS" oninput="this.value=this.value.toUpperCase()"></div>
+      <div class="fi"><label>Hisse / Fon Kodu (opsiyonel)</label><input type="text" id="n-tick" placeholder="TUPRS veya AAK" list="note-ticker-list" oninput="this.value=this.value.toUpperCase()"></div>
       <div class="fi"><label>Tarih</label><input type="date" id="n-date"></div>
       <div class="fi full"><label>Başlık</label><input type="text" id="n-ttl" placeholder="Not başlığı"></div>
       <div class="fi full"><label>İçerik *</label><textarea id="n-body" placeholder="Analiziniz, gözlemleriniz..." style="min-height:110px"></textarea></div>
@@ -1084,7 +1131,7 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
-let S={stocks:[],dividends:[],notes:[],settings:{},prices:{}};
+let S={stocks:[],dividends:[],notes:[],settings:{},prices:{},funds:[],fundDistributions:[]};
 let divChart=null,projChart=null,donutChart=null;
 let divChartMode='monthly',calView='cards';
 
@@ -1093,6 +1140,8 @@ let divChartMode='monthly',calView='cards';
 // ══════════════════════════════════════════════
 function load(){
   try{const d=localStorage.getItem('tmttakip3');if(d)S=JSON.parse(d);}catch(e){}
+  if(!S.funds)S.funds=[];
+  if(!S.fundDistributions)S.fundDistributions=[];
   loadSettings();
 }
 function save(){
@@ -1420,7 +1469,7 @@ function delNote(id){S.notes=S.notes.filter(n=>n.id!==id);save();renderNotes();}
 // ══════════════════════════════════════════════
 // RENDER ALL
 // ══════════════════════════════════════════════
-function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();renderCompare();checkAlerts();fillCmpSels();updateCurrencyUI();}
+function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();renderCompare();renderFundCompare();checkAlerts();fillCmpSels();fillFundCmpSels();fillNoteTickerList();updateCurrencyUI();}
 
 // ══════════════════════════════════════════════
 // THEME COLORS
@@ -1570,6 +1619,16 @@ function renderDashboard(){
   document.getElementById('k-ret').textContent=fmt(tR);
   document.getElementById('k-retpct').className='ktrend '+(tR>=0?'up':'down');
   document.getElementById('k-retpct').innerHTML=(tR>=0?'▲ +':'▼ ')+(trp>0?'+':'')+trp+'% toplam';
+  const stockVal=calcStockCurrentValue(), fundVal=calcFundCurrentValue(), totalVal=stockVal+fundVal;
+  const splitEl=document.getElementById('portfolio-split');
+  if(splitEl){
+    if(stockVal>0||fundVal>0){
+      splitEl.style.display='flex';
+      document.getElementById('k-stock-val').textContent=fmt(stockVal);
+      document.getElementById('k-fund-val').textContent=fmt(fundVal);
+      document.getElementById('k-total-val').textContent=fmt(totalVal);
+    }else splitEl.style.display='none';
+  }
 
   // TABLE
   const tb=document.getElementById('ptbody');
@@ -1677,29 +1736,36 @@ function drawSparkSVG(ticker){
 // DONUT CHART
 // ══════════════════════════════════════════════
 function renderDonut(){
-  const stocks=S.stocks;
   const canvas=document.getElementById('donutChart');
-  document.getElementById('donut-val').textContent=stocks.length;
-  if(!stocks.length){
+  const cols=tc().palette;
+  let data=[];
+  const stockVal=calcStockCurrentValue();
+  if(stockVal>0) data.push({ticker:'📈 Hisseler',val:stockVal});
+  (S.funds||[]).forEach(f=>{
+    const pos=calcFundPosition(f);
+    const v=(f.curNav||pos.avgNav)*pos.shares;
+    if(v>0) data.push({ticker:f.code,val:v});
+  });
+  const total=data.reduce((a,d)=>a+d.val,0)||1;
+  const dv=document.getElementById('donut-val');
+  if(dv) dv.textContent=data.length?Math.round(total).toLocaleString('tr-TR'):'0';
+  if(!data.length){
     if(donutChart){donutChart.destroy();donutChart=null;}
-    document.getElementById('donut-legend').innerHTML='<div style="color:var(--muted);font-size:.75rem">Hisse ekleyin</div>';
+    document.getElementById('donut-legend').innerHTML='<div style="color:var(--muted);font-size:.75rem">Varlık ekleyin</div>';
     return;
   }
-  const cols=tc().palette;
-  const data=stocks.map(s=>{const l=s.lots.reduce((a,x)=>a+x.lots,0);const a=l?s.lots.reduce((a,x)=>a+x.price*x.lots,0)/l:0;return{ticker:s.ticker,val:a*l};});
-  const total=data.reduce((a,d)=>a+d.val,0);
   data.sort((a,b)=>b.val-a.val);
   if(donutChart)donutChart.destroy();
   donutChart=new Chart(canvas,{
     type:'doughnut',
     data:{labels:data.map(d=>d.ticker),datasets:[{data:data.map(d=>d.val),backgroundColor:cols.slice(0,data.length),borderColor:'var(--sf)',borderWidth:2,hoverBorderWidth:3}]},
-    options:{responsive:true,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmt(ctx.raw)} (${total?(ctx.raw/total*100).toFixed(1):0}%)`}}}}
+    options:{responsive:true,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmt(ctx.raw)} (${(ctx.raw/total*100).toFixed(1)}%)`}}}}
   });
-  document.getElementById('donut-legend').innerHTML=data.slice(0,6).map((d,i)=>`
+  document.getElementById('donut-legend').innerHTML=data.slice(0,8).map((d,i)=>`
     <div class="dl-item">
       <div class="dl-dot" style="background:${cols[i]}"></div>
       <span class="dl-name">${d.ticker}</span>
-      <span class="dl-pct">${total?(d.val/total*100).toFixed(1):0}%</span>
+      <span class="dl-pct">${(d.val/total*100).toFixed(1)}%</span>
     </div>`).join('');
 }
 
@@ -1919,8 +1985,9 @@ function toggleCalView(){
 }
 function renderCalendar(){
   const area=document.getElementById('cal-area'),stats=document.getElementById('cal-stats');
-  const sorted=[...S.dividends].sort((a,b)=>b.date.localeCompare(a.date));
-  if(!sorted.length){area.innerHTML='<div class="empty"><div class="ei">📅</div><div class="et">Henüz temettü kaydı yok.</div></div>';stats.innerHTML='';return;}
+  const fundDists=(S.fundDistributions||[]).map(d=>({id:d.id,ticker:d.code,date:d.date,total:d.net,perShare:d.net,period:d.note||'Fon dağıtımı',_kind:'fund'}));
+  const sorted=[...S.dividends.map(d=>({...d,_kind:'div'})),...fundDists].sort((a,b)=>b.date.localeCompare(a.date));
+  if(!sorted.length){area.innerHTML='<div class="empty"><div class="ei">📅</div><div class="et">Henüz ödeme kaydı yok.</div></div>';stats.innerHTML='';return;}
 
   // Stats row
   const tod=today();
@@ -1941,14 +2008,14 @@ function renderCalendar(){
           <div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
               <span class="tk" style="font-size:.85rem">${d.ticker}</span>
-              ${d.date>=tod?`<span class="badge bo">Yaklaşan</span>`:`<span class="badge bg">Ödendi</span>`}
+              ${d._kind==='fund'?`<span class="badge bb">Fon</span> `:''}${d.date>=tod?`<span class="badge bo">Yaklaşan</span>`:`<span class="badge bg">Ödendi</span>`}
               ${d.period?`<span style="font-size:.7rem;color:var(--muted)">${d.period}</span>`:''}
             </div>
             <div style="font-size:.72rem;color:var(--muted);font-family:var(--fm)">${d.date} · ${fmtN(d.perShare)}/adet</div>
           </div>
           <div style="display:flex;align-items:center;gap:10px">
             <div class="mo ${d.date>=tod?'':'pos'}" style="font-size:1.05rem;font-weight:700">${d.date>=tod?'':'+'} ${fmt(d.total)}</div>
-            <button class="btn bd sm" onclick="delDiv(${d.id})">🗑</button>
+            <button class="btn bd sm" onclick="${d._kind==='fund'?'delFundDist':'delDiv'}(${d.id})">🗑</button>
           </div>
         </div>
       </div>`).join('')}</div></div>`;
@@ -1997,7 +2064,7 @@ function renderNotes(){
     <div class="nc">
       <div class="nh">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          ${n.ticker?`<span class="tk" style="font-size:.78rem">${n.ticker}</span>`:''}
+          ${n.ticker?`<span class="tk" style="font-size:.78rem">${n.ticker}</span>${(S.funds||[]).some(f=>f.code===n.ticker)?' <span class="badge bb" style="font-size:.58rem">FON</span>':(S.stocks||[]).some(s=>s.ticker===n.ticker)?' <span class="badge bg" style="font-size:.58rem">HİSSE</span>':''}`:''}
           ${n.tag?`<span class="badge ${tagCol[n.tag]||'bb'}">${te[n.tag]||''} ${n.tag}</span>`:''}
         </div>
         <div style="display:flex;gap:6px;align-items:center">
@@ -2115,23 +2182,27 @@ function loadSettings(){
   ['g-annual','g-monthly','g-port','g-yield'].forEach(id=>{const e=document.getElementById(id);if(e&&s[id])e.value=s[id];});
   const rd=document.getElementById('remind-days');if(rd&&s['remind-days'])rd.value=s['remind-days'];
   const ap=document.getElementById('auto-price');if(ap)ap.checked=s['auto-price']===true||s['auto-price']==='true';
+  const an=document.getElementById('auto-nav');if(an)an.checked=s['auto-nav']===true||s['auto-nav']==='true';
 }
 function saveSettings(){
   S.settings=S.settings||{};
   ['g-annual','g-monthly','g-port','g-yield'].forEach(id=>{const e=document.getElementById(id);if(e)S.settings[id]=e.value;});
   const rd=document.getElementById('remind-days');if(rd)S.settings['remind-days']=rd.value;
   const ap=document.getElementById('auto-price');if(ap)S.settings['auto-price']=ap.checked;
+  const an=document.getElementById('auto-nav');if(an)S.settings['auto-nav']=an.checked;
   save();renderGoals();
 }
 function renderGoals(){
   const area=document.getElementById('goals-prog');if(!area)return;
   const s=S.settings||{};
   const tD=S.dividends.reduce((a,d)=>a+d.total,0);
-  const tI=S.stocks.reduce((a,s)=>{const l=s.lots.reduce((b,x)=>b+x.lots,0);const av=l?s.lots.reduce((b,x)=>b+x.price*x.lots,0)/l:0;return a+av*l;},0);
+  const tI=calcTotalPortfolioValue();
+  const fundDist=(S.fundDistributions||[]).reduce((a,d)=>a+(d.net||0),0);
+  const tD_all=tD+fundDist;
   const items=[
-    {l:'Yıllık Temettü Hedefi',c:tD,g:parseFloat(s['g-annual'])||0},
+    {l:'Yıllık Temettü Hedefi',c:tD_all,g:parseFloat(s['g-annual'])||0},
     {l:'Portföy Büyüklüğü Hedefi',c:tI,g:parseFloat(s['g-port'])||0},
-    {l:'Aylık Pasif Gelir Hedefi',c:tD/12,g:parseFloat(s['g-monthly'])||0},
+    {l:'Aylık Pasif Gelir Hedefi',c:tD_all/12,g:parseFloat(s['g-monthly'])||0},
   ].filter(i=>i.g>0);
   if(!items.length){area.innerHTML='<p style="color:var(--muted);font-size:.8rem">Yukarıdaki hedefleri doldurun.</p>';return;}
   area.innerHTML=items.map(i=>{const p=Math.min((i.c/i.g)*100,100);return `
@@ -2371,9 +2442,28 @@ function doImport(rows, type){
   setTimeout(()=>alert(`✅ ${added} satır aktarıldı${skipped>0?', '+skipped+' satır atlandı (eksik/hatalı veri)':''}.`),100);
 }
 
+function exportCSV(){
+  const BOM='\uFEFF';
+  const rows=[['Tür','Kod','Ad','Güncel Değer (₺)','Maliyet (₺)','K/Z (₺)']];
+  S.stocks.forEach(s=>{
+    const l=s.lots.reduce((a,x)=>a+x.lots,0);
+    const avg=l?s.lots.reduce((a,x)=>a+x.price*x.lots,0)/l:0;
+    const cp=S.prices[s.ticker]?.price||avg;
+    const cur=cp*l, cost=avg*l;
+    rows.push(['Hisse',s.ticker,s.name,cur.toFixed(2),cost.toFixed(2),(cur-cost).toFixed(2)]);
+  });
+  (S.funds||[]).forEach(f=>{
+    const pos=calcFundPosition(f);
+    const cur=(f.curNav||pos.avgNav)*pos.shares;
+    const pl=cur-pos.cost+pos.realized;
+    rows.push(['Fon',f.code,f.name,cur.toFixed(2),pos.cost.toFixed(2),pl.toFixed(2)]);
+  });
+  const csv=BOM+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  dl('portfoy-ozet.csv',csv,'text/csv;charset=utf-8');
+}
 function exportAll(){dl('temettu-yedek.json',JSON.stringify(S,null,2),'application/json');}
 function handleImport(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(confirm('Mevcut veriler silinecek. Onaylıyor musunuz?')){S=d;save();renderAll();alert('Yüklendi!');}}catch{alert('Geçersiz dosya.');}};r.readAsText(f);}
-function clearAll(){if(confirm('TÜM veriler silinecek. Emin misiniz?')){S={stocks:[],dividends:[],notes:[],settings:{},prices:{}};save();renderAll();}}
+function clearAll(){if(confirm('TÜM veriler silinecek. Emin misiniz?')){S={stocks:[],dividends:[],notes:[],settings:{},prices:{},funds:[],fundDistributions:[]};save();renderAll();}}
 function dl(n,c,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();}
 
 // ══════════════════════════════════════════════
@@ -2480,7 +2570,7 @@ function updateCurrencyUI(){
   if(timeEl) timeEl.textContent = _rates.ts ? new Date(_rates.ts).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
 }
 
-function calcTotalCurrentValue(){
+function calcStockCurrentValue(){
   return S.stocks.reduce((tot,s)=>{
     const l=s.lots.reduce((a,x)=>a+x.lots,0);
     const cp=S.prices[s.ticker]?.price||s.lots.filter(x=>x.curPrice).slice(-1)[0]?.curPrice||
@@ -2488,6 +2578,15 @@ function calcTotalCurrentValue(){
     return tot+cp*l;
   },0);
 }
+function calcFundCurrentValue(){
+  if(!S.funds) S.funds=[];
+  return S.funds.reduce((tot,f)=>{
+    const pos=calcFundPosition(f);
+    return tot+(f.curNav||pos.avgNav||0)*pos.shares;
+  },0);
+}
+function calcTotalPortfolioValue(){ return calcStockCurrentValue()+calcFundCurrentValue(); }
+function calcTotalCurrentValue(){ return calcTotalPortfolioValue(); }
 
 // ══════════════════════════════════════════════
 // KAP HABERLERİ
@@ -3052,6 +3151,7 @@ if(S.stocks.length){
   document.getElementById('last-upd').textContent='Yüklendi · '+new Date().toLocaleString('tr-TR');
   if(S.settings?.['auto-price']==='true'||S.settings?.['auto-price']===true)setTimeout(fetchAllPrices,1200);
 }
+if((S.funds||[]).length&&(S.settings?.['auto-nav']==='true'||S.settings?.['auto-nav']===true))setTimeout(fetchAllFundNavs,2400);
 // Planlayıcıyı yükle — DOM tamamen hazır olduğundan emin ol
 setTimeout(()=>{
   loadPlanner();
@@ -3369,6 +3469,16 @@ function downloadTemplate(){
         <div id="af-lookup-result" style="margin-top:6px;font-size:.75rem;min-height:20px"></div>
       </div>
       <div class="fi full"><label>Fon Adı *</label><input type="text" id="af-name" placeholder="Ak Portföy Birinci Hisse Senedi Fonu"></div>
+      <div class="fi">
+        <label>TEFAS Fon Tipi</label>
+        <select id="af-tefas-type" title="NAV sorgusu için TEFAS kategorisi">
+          <option value="YAT" selected>YAT — Yatırım Fonu</option>
+          <option value="EMK">EMK — Emeklilik</option>
+          <option value="BYF">BYF — Borsa Yatırım</option>
+          <option value="GYF">GYF — Gayrimenkul</option>
+          <option value="GSYF">GSYF — Girişim Sermayesi</option>
+        </select>
+      </div>
       <div class="fi full">
         <label>Fon Türü</label>
         <select id="af-type">
@@ -3406,6 +3516,16 @@ function downloadTemplate(){
     <div class="fg">
       <div class="fi full"><label>Fon Kodu</label><div id="ef-code-display" style="font-family:var(--fm);font-weight:800;color:var(--ac);font-size:1.2rem;padding:8px 0"></div></div>
       <div class="fi full"><label>Fon Adı</label><input type="text" id="ef-name"></div>
+      <div class="fi full">
+        <label>TEFAS Fon Tipi</label>
+        <select id="ef-tefas-type">
+          <option value="YAT">YAT — Yatırım Fonu</option>
+          <option value="EMK">EMK — Emeklilik</option>
+          <option value="BYF">BYF — Borsa Yatırım</option>
+          <option value="GYF">GYF — Gayrimenkul</option>
+          <option value="GSYF">GSYF — Girişim Sermayesi</option>
+        </select>
+      </div>
       <div class="fi full"><label>Fon Türü</label>
         <select id="ef-type">
           <option value="">Seçin...</option>
@@ -3462,6 +3582,43 @@ function downloadTemplate(){
     </div>
   </div>
 </div>
+
+
+<!-- FON DAĞITIM MODALI -->
+<div class="ov" id="m-fund-dist">
+  <div class="modal" style="max-width:480px">
+    <div class="mt">💸 Fon Dağıtımı Ekle</div>
+    <div class="fg">
+      <div class="fi full"><label>Fon Kodu *</label>
+        <select id="fd-code"><option value="">Seçin...</option></select>
+      </div>
+      <div class="fi"><label>Ödeme Tarihi *</label><input type="date" id="fd-date"></div>
+      <div class="fi"><label>Brüt Tutar (₺) *</label><input type="number" id="fd-gross" step="0.01" oninput="calcFundDistNet()"></div>
+      <div class="fi"><label>Stopaj (%)</label><input type="number" id="fd-stopaj" value="10" step="0.1" oninput="calcFundDistNet()"></div>
+      <div class="fi"><label>Net Tutar (₺)</label><input type="number" id="fd-net" step="0.01" readonly style="opacity:.85"></div>
+      <div class="fi full"><label>Dönem / Not</label><input type="text" id="fd-note" placeholder="2024 yıllık dağıtım"></div>
+    </div>
+    <div class="ma">
+      <button class="btn bg2" onclick="closeModal('m-fund-dist')">İptal</button>
+      <button class="btn bp" onclick="saveFundDist()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV GEÇMİŞİ MODALI -->
+<div class="ov" id="m-fund-nav-hist">
+  <div class="modal" style="max-width:720px">
+    <div class="mt" id="fnh-title">📈 NAV Geçmişi</div>
+    <div style="font-size:.75rem;color:var(--muted2);margin-bottom:12px" id="fnh-sub"></div>
+    <div style="position:relative;height:280px"><canvas id="fnh-chart"></canvas></div>
+    <div id="fnh-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px"></div>
+    <div class="ma" style="margin-top:14px">
+      <button class="btn bg2" onclick="closeModal('m-fund-nav-hist')">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<datalist id="note-ticker-list"></datalist>
 
 <script>
 // ══════════════════════════════════════════════
@@ -3648,7 +3805,8 @@ async function lookupFund(){
   if(!code){alert('Fon kodu girin.');return;}
   const res = document.getElementById('af-lookup-result');
   res.innerHTML='<span style="color:var(--muted)">⟳ Sorgulanıyor...</span>';
-  const nav = await fetchFundNav(code);
+  const tefasType=document.getElementById('af-tefas-type')?.value||'YAT';
+  const nav = await fetchFundNav(code,15000,tefasType);
   if(nav){
     res.innerHTML=`<span style="color:var(--green)">✓ Güncel NAV: <strong>₺${nav.toFixed(6)}</strong> — Fon bulundu</span>`;
     const navEl=document.getElementById('af-nav');
@@ -3703,11 +3861,12 @@ function saveFund(){
   if(!S.funds) S.funds=[];
   let f=S.funds.find(x=>x.code===code);
   if(!f){
-    f={code,name,type:document.getElementById('af-type').value||'',lots:[],curNav:null,navTs:null};
+    f={code,name,type:document.getElementById('af-type').value||'',tefasType:document.getElementById('af-tefas-type')?.value||'YAT',lots:[],curNav:null,navTs:null};
     S.funds.push(f);
   } else {
     // Mevcut fona yeni alım — adı/türü de güncelle
     if(name) f.name=name;
+  const _tt=document.getElementById('af-tefas-type')?.value;if(_tt)f.tefasType=_tt;
   }
   if(side==='sell'){
     const available=calcFundPosition(f).shares;
@@ -3731,7 +3890,7 @@ function openEditFundModal(code){
   document.getElementById('ef-code-orig').value=code;
   document.getElementById('ef-code-display').textContent=code;
   document.getElementById('ef-name').value=f.name||'';
-  document.getElementById('ef-type').value=f.type||'';
+  document.getElementById('ef-type').value=f.type||''; const _ett=document.getElementById('ef-tefas-type');if(_ett)_ett.value=f.tefasType||'YAT';
   openModal('m-edit-fund');
 }
 function saveEditFund(){
@@ -3739,7 +3898,7 @@ function saveEditFund(){
   const f=S.funds.find(x=>x.code===code);if(!f)return;
   const name=document.getElementById('ef-name').value.trim();
   if(!name){alert('Fon adı boş olamaz.');return;}
-  f.name=name; f.type=document.getElementById('ef-type').value;
+  f.name=name; f.type=document.getElementById('ef-type').value; f.tefasType=document.getElementById('ef-tefas-type')?.value||f.tefasType||'YAT';
   save(); closeModal('m-edit-fund'); renderFunds(); triggerTxnRefresh('funds');
 }
 
@@ -3857,29 +4016,47 @@ function extractNavFromRows(rows){
   return nav>0?nav:null;
 }
 
-async function fetchFundNav(code,maxTimeoutMs=15000){
+function getFundTefasType(fundOrCode){
+  if(typeof fundOrCode==='object'&&fundOrCode) return fundOrCode.tefasType||'YAT';
+  const c=(fundOrCode||'').toUpperCase();
+  const f=(S.funds||[]).find(x=>x.code===c);
+  return f?.tefasType||'YAT';
+}
+function _navCacheKey(code,tip){return (code||'').toUpperCase()+'_'+tip;}
+async function fetchFundNav(code,maxTimeoutMs=15000,tefasType){
   const NAV_FETCH_TIMEOUT_MS = Math.max(1000,Number(maxTimeoutMs)||15000);
   const startedAt = Date.now();
   const remainingMs = ()=>Math.max(0,NAV_FETCH_TIMEOUT_MS-(Date.now()-startedAt));
   const upperCode=(code||'').trim().toUpperCase();
   if(!upperCode)return null;
+  const tip=tefasType||getFundTefasType(upperCode);
+  const ck=_navCacheKey(upperCode,tip);
+  if(_fundNavCache[ck]&&Date.now()-_fundNavCacheTime<30*60*1000) return _fundNavCache[ck];
   const fromDate=_dateStr(-30);
   const toDate=_dateStr(0);
+  const tefasPairs=[[tip,tip],['YAT','YAT'],['EMK','EMK'],['BYF','BYF']];
   const endpoints=[
     async(remain)=>{
-      const url=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fonttip=YAT&fontip=YAT&bastarih=${fromDate}&bittarih=${toDate}&fonkod=${upperCode}`;
-      const txt=await fetchTextWithProxies(url,remain);
-      if(!txt)return null;
-      const rows=parseFundRows(txt);
-      return extractNavFromRows(rows);
+      for(const [ft,fi] of tefasPairs){
+        const url=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fonttip=${ft}&fontip=${fi}&bastarih=${fromDate}&bittarih=${toDate}&fonkod=${upperCode}`;
+        const txt=await fetchTextWithProxies(url,remain);
+        if(!txt)continue;
+        const nav=extractNavFromRows(parseFundRows(txt));
+        if(nav){_fundNavCache[_navCacheKey(upperCode,ft)]=nav;_fundNavCacheTime=Date.now();return nav;}
+      }
+      return null;
     },
     async(remain)=>{
-      const directUrl=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fonttip=YAT&fontip=YAT&bastarih=${fromDate}&bittarih=${toDate}&fonkod=${upperCode}`;
-      const r=await fetch(directUrl,{signal:AbortSignal.timeout(Math.min(remain,10000))});
-      if(!r.ok)return null;
-      const txt=await r.text();
-      const rows=parseFundRows(txt);
-      return extractNavFromRows(rows);
+      for(const [ft,fi] of tefasPairs){
+        try{
+          const directUrl=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fonttip=${ft}&fontip=${fi}&bastarih=${fromDate}&bittarih=${toDate}&fonkod=${upperCode}`;
+          const r=await fetch(directUrl,{signal:AbortSignal.timeout(Math.min(remain,8000))});
+          if(!r.ok)continue;
+          const nav=extractNavFromRows(parseFundRows(await r.text()));
+          if(nav){_fundNavCache[_navCacheKey(upperCode,ft)]=nav;_fundNavCacheTime=Date.now();return nav;}
+        }catch(e){}
+      }
+      return null;
     },
     async(remain)=>{
       const url=`https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=${upperCode}`;
@@ -3903,7 +4080,11 @@ async function fetchFundNav(code,maxTimeoutMs=15000){
     if(remain<250)break;
     try{
       const nav=await fn(remain);
-      if(nav&&nav>0)return nav;
+      if(nav&&nav>0){
+        _fundNavCache[_navCacheKey(upperCode,tip)]=nav;
+        _fundNavCacheTime=Date.now();
+        return nav;
+      }
     }catch(e){}
   }
   return null;
@@ -3928,7 +4109,7 @@ async function fetchAllFundNavs(){
   ]);
   const tasks=S.funds.map(async(f)=>{
     const remain=Math.max(1,deadline-Date.now());
-    const nav=await withTimeout(fetchFundNav(f.code,remain),remain);
+    const nav=await withTimeout(fetchFundNav(f.code,remain,f.tefasType),remain);
     return {code:f.code,nav};
   });
   const results=await Promise.all(tasks);
@@ -4041,6 +4222,8 @@ function renderFunds(){
   // Grafikler
   renderFundDonut();
   renderFundBar();
+  renderFundTypeChart();
+  renderFundDistributions();
 
   if(!S.funds.length){
     area.innerHTML='<div class="empty"><div class="ei">📦</div><div class="et">Henüz fon eklenmedi.</div></div>';
@@ -4181,6 +4364,7 @@ function renderFunds(){
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
             <button class="btn bg2 sm" onclick="openAddFundModal('buy');document.getElementById('af-code').value='${f.code}';document.getElementById('af-name').value='${f.name.replace(/'/g,"\\'")}'" style="white-space:nowrap">+ Alım</button>
             <button class="btn bg2 sm" onclick="openAddFundModal('sell');document.getElementById('af-code').value='${f.code}';document.getElementById('af-name').value='${f.name.replace(/'/g,"\\'")}'" style="white-space:nowrap">+ Satış</button>
+            <button class="btn bg2 sm" onclick="openFundNavHistory('${f.code}')">📈</button>
             <button class="btn bg2 sm" onclick="openEditFundModal('${f.code}')">✏️</button>
             <button class="btn bd sm" onclick="delFund('${f.code}')">🗑</button>
           </div>
@@ -4250,12 +4434,244 @@ function renderFundBar(){
   });
 }
 
+
+if(!S.fundDistributions) S.fundDistributions=[];
+
+function fillNoteTickerList(){
+  const dl=document.getElementById('note-ticker-list');
+  if(!dl)return;
+  dl.innerHTML=[...new Set([...(S.stocks||[]).map(s=>s.ticker),...(S.funds||[]).map(f=>f.code)])].map(t=>`<option value="${t}">`).join('');
+}
+
+function fillFundCmpSels(){
+  ['fcmp-a','fcmp-b'].forEach(id=>{
+    const sel=document.getElementById(id);if(!sel)return;
+    const cur=sel.value;
+    sel.innerHTML='<option value="">Fon seçin...</option>';
+    (S.funds||[]).forEach(f=>sel.innerHTML+=`<option value="${f.code}">${f.code}</option>`);
+    if(cur)sel.value=cur;
+  });
+}
+
+function renderFundCompare(){
+  const a=document.getElementById('fcmp-a')?.value,b=document.getElementById('fcmp-b')?.value;
+  const area=document.getElementById('fcmp-result');if(!area)return;
+  if(!a||!b||a===b){area.innerHTML='<div class="empty" style="padding:20px 0"><div class="et">İki farklı fon seçin</div></div>';return;}
+  const fa=S.funds.find(x=>x.code===a),fb=S.funds.find(x=>x.code===b);
+  if(!fa||!fb){area.innerHTML='<div class="empty" style="padding:20px 0"><div class="et">Fon bulunamadı</div></div>';return;}
+  const calc=f=>{
+    const pos=calcFundPosition(f);
+    const cur=(f.curNav||pos.avgNav)*pos.shares;
+    const pl=cur-pos.cost+pos.realized;
+    const pct=pos.cost?pl/pos.cost*100:0;
+    const dist=(S.fundDistributions||[]).filter(d=>d.code===f.code).reduce((a,d)=>a+(d.net||0),0);
+    return{pos,cur,pl,pct,dist,tx:f.lots.length};
+  };
+  const da=calc(fa),db=calc(fb);
+  const rows=[
+    {lbl:'Net Pay',va:da.pos.shares.toLocaleString('tr-TR'),vb:db.pos.shares.toLocaleString('tr-TR')},
+    {lbl:'Ort. Maliyet NAV',va:'₺'+da.pos.avgNav.toFixed(6),vb:'₺'+db.pos.avgNav.toFixed(6)},
+    {lbl:'Güncel NAV',va:fa.curNav?'₺'+fa.curNav.toFixed(6):'—',vb:fb.curNav?'₺'+fb.curNav.toFixed(6):'—'},
+    {lbl:'Güncel Değer',va:fmt(da.cur),vb:fmt(db.cur)},
+    {lbl:'Toplam K/Z',va:`<span class="${da.pl>=0?'pos':'neg'}">${fmt(da.pl)}</span>`,vb:`<span class="${db.pl>=0?'pos':'neg'}">${fmt(db.pl)}</span>`},
+    {lbl:'Getiri %',va:'%'+da.pct.toFixed(2),vb:'%'+db.pct.toFixed(2)},
+    {lbl:'Dağıtım Geliri',va:fmt(da.dist),vb:fmt(db.dist)},
+    {lbl:'İşlem Sayısı',va:da.tx,vb:db.tx},
+    {lbl:'Fon Türü',va:fa.type||'—',vb:fb.type||'—'},
+  ];
+  area.innerHTML=`<div style="display:grid;grid-template-columns:200px 1fr 1fr;gap:0;border:1px solid var(--br);border-radius:14px;overflow:hidden">
+    <div style="background:var(--sf3);padding:12px 16px;font-size:.65rem;font-weight:700;color:var(--muted)">Metrik</div>
+    <div style="background:var(--sf3);padding:12px;text-align:center;border-left:1px solid var(--br)"><div class="tk">${fa.code}</div></div>
+    <div style="background:var(--sf3);padding:12px;text-align:center;border-left:1px solid var(--br)"><div class="tk">${fb.code}</div></div>
+    ${rows.map(r=>`<div style="padding:10px 16px;border-bottom:1px solid var(--br);font-size:.78rem;color:var(--muted2)">${r.lbl}</div>
+      <div style="padding:10px 16px;border-bottom:1px solid var(--br);border-left:1px solid var(--br);text-align:center;font-family:var(--fm);font-size:.8rem">${r.va}</div>
+      <div style="padding:10px 16px;border-bottom:1px solid var(--br);border-left:1px solid var(--br);text-align:center;font-family:var(--fm);font-size:.8rem">${r.vb}</div>`).join('')}
+  </div>`;
+}
+
+let _fundTypeChart=null,_fnhChart=null;
+
+function renderFundTypeChart(){
+  const el=document.getElementById('fund-type-chart');
+  const leg=document.getElementById('fund-type-legend');
+  if(!el)return;
+  if(!(S.funds||[]).length){if(_fundTypeChart){_fundTypeChart.destroy();_fundTypeChart=null;}if(leg)leg.innerHTML='';return;}
+  const COLORS=['#00d4aa','#f5c518','#4a9eff','#a855f7','#f97316','#ec4899','#10b981','#06b6d4'];
+  const g={};
+  S.funds.forEach(f=>{
+    const pos=calcFundPosition(f);
+    const v=(f.curNav||pos.avgNav)*pos.shares;
+    if(v<=0)return;
+    const t=f.type||'Belirtilmemiş';
+    g[t]=(g[t]||0)+v;
+  });
+  const data=Object.entries(g).map(([type,val])=>({type,val}));
+  if(!data.length){if(leg)leg.innerHTML='';return;}
+  const total=data.reduce((a,d)=>a+d.val,0);
+  if(_fundTypeChart)_fundTypeChart.destroy();
+  _fundTypeChart=new Chart(el,{type:'doughnut',data:{labels:data.map(d=>d.type),datasets:[{data:data.map(d=>d.val),backgroundColor:COLORS.slice(0,data.length),borderWidth:2,borderColor:'var(--bg)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  if(leg) leg.innerHTML=data.map((d,i)=>`<span style="display:inline-flex;align-items:center;gap:5px;margin:2px 4px"><span style="width:10px;height:10px;border-radius:50%;background:${COLORS[i]}"></span>${d.type} ${(d.val/total*100).toFixed(0)}%</span>`).join('');
+}
+
+function renderFundDistributions(){
+  const area=document.getElementById('fund-dist-area');if(!area)return;
+  const list=[...(S.fundDistributions||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  if(!list.length){area.innerHTML='<div class="empty" style="padding:24px"><div class="et">Henüz fon dağıtım kaydı yok.</div></div>';return;}
+  area.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.78rem"><thead><tr style="background:var(--sf3)">
+    <th style="padding:8px 10px;text-align:left">Fon</th><th>Tarih</th><th>Brüt</th><th>Stopaj</th><th>Net</th><th></th>
+  </tr></thead><tbody>${list.map(d=>{
+    const f=S.funds.find(x=>x.code===d.code);
+    return `<tr style="border-bottom:1px solid var(--br)">
+      <td style="padding:8px 10px"><span class="tk">${d.code}</span><br><span style="font-size:.65rem;color:var(--muted)">${f?.name||''}</span></td>
+      <td class="mo" style="padding:8px">${d.date}</td>
+      <td class="mo" style="padding:8px">${fmt(d.gross)}</td>
+      <td class="mo" style="padding:8px">%${d.stopaj||0}</td>
+      <td class="mo pos" style="padding:8px;font-weight:700">${fmt(d.net)}</td>
+      <td style="padding:8px"><button class="btn bd sm" onclick="delFundDist(${d.id})">🗑</button></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function openFundDistModal(){
+  const sel=document.getElementById('fd-code');
+  if(sel){sel.innerHTML='<option value="">Seçin...</option>';(S.funds||[]).forEach(f=>sel.innerHTML+=`<option value="${f.code}">${f.code} — ${f.name}</option>`);}
+  document.getElementById('fd-date').value=today();
+  document.getElementById('fd-gross').value='';
+  document.getElementById('fd-net').value='';
+  document.getElementById('fd-note').value='';
+  document.getElementById('fd-stopaj').value='10';
+  openModal('m-fund-dist');
+}
+function calcFundDistNet(){
+  const g=parseFloat(document.getElementById('fd-gross')?.value)||0;
+  const s=parseFloat(document.getElementById('fd-stopaj')?.value)||0;
+  const netEl=document.getElementById('fd-net');
+  if(netEl) netEl.value=g>0?(g*(1-s/100)).toFixed(2):'';
+}
+function saveFundDist(){
+  const code=document.getElementById('fd-code')?.value;
+  const date=document.getElementById('fd-date')?.value;
+  const gross=parseFloat(document.getElementById('fd-gross')?.value)||0;
+  const stopaj=parseFloat(document.getElementById('fd-stopaj')?.value)||10;
+  const net=parseFloat(document.getElementById('fd-net')?.value)||gross*(1-stopaj/100);
+  if(!code||!date||gross<=0){alert('Fon, tarih ve brüt tutar zorunlu.');return;}
+  if(!S.fundDistributions) S.fundDistributions=[];
+  S.fundDistributions.push({id:Date.now(),code,date,gross,stopaj,net,note:document.getElementById('fd-note')?.value.trim()||''});
+  save();closeModal('m-fund-dist');renderFundDistributions();renderGoals();renderCalendar();
+}
+function delFundDist(id){
+  if(!confirm('Dağıtım kaydı silinsin mi?'))return;
+  S.fundDistributions=(S.fundDistributions||[]).filter(d=>d.id!==id);
+  save();renderFundDistributions();renderGoals();renderCalendar();
+}
+
+async function fetchFundNavHistory(code,days=365){
+  const upperCode=(code||'').trim().toUpperCase();
+  const tip=getFundTefasType(upperCode);
+  const hck=_navCacheKey(upperCode,'hist_'+tip+'_'+days);
+  if(_fundNavCache[hck]) return _fundNavCache[hck];
+  const fromDate=_dateStr(-days), toDate=_dateStr(0);
+  for(const [ft,fi] of [[tip,tip],['YAT','YAT'],['EMK','EMK']]){
+    const url=`https://www.tefas.gov.tr/api/DB/BindHistoryInfo?fonttip=${ft}&fontip=${fi}&bastarih=${fromDate}&bittarih=${toDate}&fonkod=${upperCode}`;
+    const txt=await fetchTextWithProxies(url,15000);
+    if(!txt) continue;
+    const rows=parseFundRows(txt);
+    if(!rows.length) continue;
+    const series=rows.map(r=>{
+      const nav=parseFloat(r.FIYAT??r.Fiyat??r.fiyat??0);
+      const date=(r.TARIH??r.Tarih??r.tarih??'').toString();
+      return nav>0?{date,nav}:null;
+    }).filter(Boolean);
+    if(series.length){_fundNavCache[hck]=series;_fundNavCacheTime=Date.now();return series;}
+  }
+  return [];
+}
+
+async function openFundNavHistory(code){
+  const f=S.funds.find(x=>x.code===code);if(!f)return;
+  document.getElementById('fnh-title').textContent='📈 '+code+' NAV Geçmişi';
+  document.getElementById('fnh-sub').textContent=(f.name||'')+' · Son 12 ay';
+  openModal('m-fund-nav-hist');
+  const series=await fetchFundNavHistory(code,365);
+  const statsEl=document.getElementById('fnh-stats');
+  const canvas=document.getElementById('fnh-chart');
+  if(!series.length){
+    if(_fnhChart){_fnhChart.destroy();_fnhChart=null;}
+    statsEl.innerHTML='<p style="color:var(--muted);grid-column:1/-1">NAV geçmişi çekilemedi.</p>';
+    return;
+  }
+  const navs=series.map(s=>s.nav);
+  const first=navs[0],last=navs[navs.length-1];
+  const ret=first?((last-first)/first*100):0;
+  statsEl.innerHTML=[
+    {l:'Getiri',v:(ret>=0?'+':'')+ret.toFixed(2)+'%'},
+    {l:'Min NAV',v:'₺'+Math.min(...navs).toFixed(6)},
+    {l:'Max NAV',v:'₺'+Math.max(...navs).toFixed(6)},
+  ].map(x=>`<div class="kcard" style="padding:12px"><div class="klabel">${x.l}</div><div class="kval mo" style="font-size:1rem">${x.v}</div></div>`).join('');
+  if(_fnhChart)_fnhChart.destroy();
+  const c=tc();
+  _fnhChart=new Chart(canvas,{type:'line',data:{labels:series.map(s=>s.date),datasets:[{data:navs,borderColor:c.a,backgroundColor:c.a.replace('.8','.15'),fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{maxTicksLimit:8,color:c.tick,font:{size:9}}},y:{ticks:{color:c.tick,callback:v=>'₺'+Number(v).toFixed(4)}}}}});
+}
+
+function exportExcelFunds(){
+  const BOM='\uFEFF';
+  const rows=[['Fon Kodu','Fon Adı','Tür','İşlem','Tarih','NAV (₺)','Pay','Not']];
+  (S.funds||[]).forEach(f=>{
+    f.lots.forEach(l=>{
+      rows.push([f.code,f.name,f.type||'',l.side==='sell'?'Satış':'Alım',l.date,l.nav,l.shares,l.note||'']);
+    });
+  });
+  dl('fon-islemler.csv',BOM+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n'),'text/csv;charset=utf-8');
+}
+function openImportFunds(){document.getElementById('fund-import-file')?.click();}
+
+function parseImportFundsCSV(text){
+  text=text.replace(/^\uFEFF/,'');
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2){alert('Dosya boş.');return;}
+  const sep=lines[0].includes(';')?';':',';
+  const parseRow=line=>{
+    const cells=[];let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      const c=line[i];
+      if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+      else if(c===sep&&!inQ){cells.push(cur.trim());cur='';}
+      else cur+=c;
+    }
+    cells.push(cur.trim());return cells;
+  };
+  const headers=parseRow(lines[0]).map(h=>h.toLowerCase());
+  const col=(...t)=>headers.findIndex(h=>t.some(x=>h.includes(x)));
+  const iC=col('kod','code'),iN=col('ad','name'),iT=col('tur','type'),iS=col('islem','side'),iD=col('tarih','date'),iNav=col('nav'),iSh=col('pay','share'),iNo=col('not');
+  let added=0;
+  lines.slice(1).forEach(line=>{
+    const r=parseRow(line);
+    const code=(r[iC]||'').toUpperCase().trim();
+    let date=r[iD]||'';
+    if(/^\d{2}\.\d{2}\.\d{4}$/.test(date)){const[d,m,y]=date.split('.');date=`${y}-${m}-${d}`;}
+    const nav=parseFloat((r[iNav]||'0').replace(',','.'))||0;
+    const shares=parseFloat((r[iSh]||'0').replace(',','.'))||0;
+    const side=(r[iS]||'').toLowerCase().includes('sat')?'sell':'buy';
+    if(!code||!date||!nav||!shares)return;
+    let f=S.funds.find(x=>x.code===code);
+    if(!f){f={code,name:r[iN]||code,type:r[iT]||'',tefasType:'YAT',lots:[],curNav:null,navTs:null};S.funds.push(f);}
+    else if(r[iN])f.name=r[iN];
+    f.lots.push({id:++_fundLotCounter,side,date,nav,shares,note:r[iNo]||''});
+    added++;
+  });
+  save();renderFunds();triggerTxnRefresh('funds');
+  alert('✅ '+added+' fon işlemi aktarıldı.');
+}
+
 // renderAll'a ekle
 const _origRenderAll=renderAll;
 function renderAll(){_origRenderAll();renderFunds();}
 
 // İlk yükleme
 if(!S.funds)S.funds=[];
+if(!S.fundDistributions)S.fundDistributions=[];
+const _fif=document.getElementById('fund-import-file');
+if(_fif&&!_fif._bound){_fif._bound=true;_fif.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{parseImportFundsCSV(ev.target.result);}catch(err){alert(err.message);}e.target.value='';};r.readAsText(f,'UTF-8');});}
 renderFunds();
 </script>
 </body>
