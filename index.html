@@ -859,19 +859,18 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
           </div>
         </div>
         <div class="ss">
-          <div class="stitle">🤖 Otomatik NAV — Gemini AI</div>
+          <div class="stitle">🤖 Otomatik NAV — Worker URL</div>
           <div style="font-size:.8rem;color:var(--muted2);line-height:1.75;margin-bottom:12px">
-            Google Gemini ile fon NAV fiyatları otomatik güncellenir. Tamamen ücretsiz.<br>
-            Key almak için: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--ac)">aistudio.google.com/apikey</a>
+            Cloudflare Worker üzerinden fon NAV fiyatları otomatik güncellenir. Tamamen ücretsiz.<br>
+            Worker adresin: <span style="color:var(--ac);font-family:var(--fm);font-size:.75rem">https://little-mud-b301.nihatcagdas.workers.dev</span>
           </div>
           <div class="fi">
-            <label>Gemini API Key</label>
-            <input type="password" id="gemini-api-key" placeholder="AIza..." autocomplete="off">
+            <label>Worker URL</label>
+            <input type="text" id="nav-worker-url" placeholder="https://....workers.dev" autocomplete="off">
           </div>
           <div style="display:flex;gap:8px;margin-top:8px">
             <button class="btn bp sm" onclick="saveApiKey()">💾 Kaydet</button>
             <button class="btn bd sm" onclick="clearApiKey()">🗑 Sil</button>
-            <button class="btn bg2 sm" onclick="toggleApiKeyVisibility()">👁 Göster</button>
           </div>
           <div id="api-key-status" style="font-size:.72rem;margin-top:8px;font-family:var(--fm)"></div>
         </div>
@@ -3164,7 +3163,7 @@ function today(){return new Date().toISOString().split('T')[0];}
 load();
 setTheme(S.settings?.theme||'ocean');
 renderAll();
-loadApiKey();
+if(typeof loadApiKey==='function')loadApiKey();
 try{
   const restorePage=sessionStorage.getItem(TXN_REFRESH_PAGE_KEY);
   if(restorePage){
@@ -4101,69 +4100,49 @@ function _dateStr(offsetDays){
 
 // ── Claude API Key Yönetimi ──
 function clearApiKey(){
-  localStorage.removeItem('gemini_api_key');
-  const el=document.getElementById('gemini-api-key');
+  localStorage.removeItem('nav_worker_url');
+  const el=document.getElementById('nav-worker-url');
   if(el) el.value='';
   updateApiKeyStatus();
-  alert('API key silindi.');
+  alert('Worker URL silindi.');
 }
 function saveApiKey(){
-  const val=(document.getElementById('gemini-api-key')?.value||'').trim();
-  if(val) localStorage.setItem('gemini_api_key',val);
-  else localStorage.removeItem('gemini_api_key');
+  const val=(document.getElementById('nav-worker-url')?.value||'').trim();
+  if(val){localStorage.setItem('nav_worker_url',val);alert('✓ Kaydedildi!');}
+  else localStorage.removeItem('nav_worker_url');
   updateApiKeyStatus();
 }
 function loadApiKey(){
-  const key=localStorage.getItem('gemini_api_key')||'';
-  const el=document.getElementById('gemini-api-key');
-  if(el) el.value=key;
+  const url=localStorage.getItem('nav_worker_url')||'';
+  const el=document.getElementById('nav-worker-url');
+  if(el) el.value=url;
   updateApiKeyStatus();
 }
 function updateApiKeyStatus(){
   const el=document.getElementById('api-key-status');
   if(!el) return;
-  const key=localStorage.getItem('gemini_api_key')||'';
-  if(key.startsWith('AIza')&&key.length>20){
-    el.innerHTML='<span style="color:var(--green)">✓ Gemini API key kaydedildi</span>';
-  } else if(key.length>0){
-    el.innerHTML='<span style="color:var(--gold)">⚠ Geçersiz format (AIza... ile başlamalı)</span>';
+  const url=localStorage.getItem('nav_worker_url')||'';
+  if(url.startsWith('https://')){
+    el.innerHTML='<span style="color:var(--green)">✓ Worker URL kaydedildi: '+url+'</span>';
+  } else if(url.length>0){
+    el.innerHTML='<span style="color:var(--gold)">⚠ https:// ile başlamalı</span>';
   } else {
-    el.innerHTML='<span style="color:var(--muted2)">— Key girilmedi, NAV güncellemesi çalışmaz</span>';
+    el.innerHTML='<span style="color:var(--muted2)">— URL girilmedi, NAV güncellemesi çalışmaz</span>';
   }
-}
-function toggleApiKeyVisibility(){
-  const el=document.getElementById('gemini-api-key');
-  if(!el) return;
-  el.type=el.type==='password'?'text':'password';
 }
 
 async function fetchNavViaClaudeAI(codes){
-  const apiKey = localStorage.getItem('gemini_api_key') || '';
-  if (!apiKey) { console.warn('NAV: Gemini API key girilmemiş'); return null; }
-
-  const prompt = 'Asagidaki Turk yatirim fonu kodlarinin bugunki guncel birim pay degerini (NAV) bul. Her biri icin ekofin.net veya tefas.gov.tr sitesinden kontrol et.\n\nFon kodlari: ' + codes.join(', ') + '\n\nSADECE su JSON formatinda yanit ver, baska hicbir sey yazma:\n{"KOD1": 1.234567, "KOD2": 3.96}\n\nBulamadigin fonlar icin null yaz. Sadece JSON, aciklama yok.';
-
-  try {
-    const resp = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(14000),
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          tools: [{ googleSearch: {} }]
-        })
-      }
-    );
-    if (!resp.ok) { console.error('Gemini hata:', resp.status, await resp.text()); return null; }
-    const data = await resp.json();
-    const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text||'').join('') || '';
-    console.log('Gemini yanıt:', text);
-    const match = text.match(/\{[\s\S]*?\}/);
-    if (!match) { console.warn('JSON parse edilemedi:', text); return null; }
-    return JSON.parse(match[0]);
-  } catch(e) { console.error('NAV: Exception:', e); return null; }
+  const workerUrl=(localStorage.getItem('nav_worker_url')||'').trim();
+  if(!workerUrl){console.warn('NAV: Worker URL girilmemiş');return null;}
+  try{
+    const url=workerUrl.replace(/\/+$/,'')+'?codes='+codes.join(',');
+    console.log('NAV: Worker →',url);
+    const resp=await fetch(url,{signal:AbortSignal.timeout(13000)});
+    if(!resp.ok){console.error('NAV: Worker hata',resp.status);return null;}
+    const data=await resp.json();
+    console.log('NAV: Sonuç',data);
+    return data;
+  }catch(e){console.error('NAV:',e);return null;}
 }
 
 async function fetchAllFundNavs(){
@@ -4172,9 +4151,9 @@ async function fetchAllFundNavs(){
   st.style.display='block';
   st.style.color='';
 
-  const geminiKey=localStorage.getItem('gemini_api_key')||'';
+  const geminiKey=localStorage.getItem('nav_worker_url')||'';
   if(!geminiKey){
-    st.innerHTML='⚠ Gemini API key girilmemiş — Ayarlar sayfasından ekleyin';
+    st.innerHTML='⚠ Worker URL girilmemiş — Ayarlar sayfasından ekleyin';
     st.style.color='var(--red)';
     setTimeout(()=>openManualNavModal(S.funds.map(f=>f.code)),800);
     setTimeout(()=>{st.style.display='none';st.style.color='';},8000);
