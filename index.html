@@ -1483,7 +1483,7 @@ function delNote(id){S.notes=S.notes.filter(n=>n.id!==id);save();renderNotes();}
 // ══════════════════════════════════════════════
 // RENDER ALL
 // ══════════════════════════════════════════════
-function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();renderCompare();renderFundCompare();checkAlerts();fillCmpSels();fillFundCmpSels();fillNoteTickerList();updateCurrencyUI();if(typeof renderFunds==='function')renderFunds();}
+function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();renderCompare();if(typeof renderFundCompare==='function')renderFundCompare();checkAlerts();fillCmpSels();if(typeof fillFundCmpSels==='function')fillFundCmpSels();fillNoteTickerList();updateCurrencyUI();if(typeof renderFunds==='function')renderFunds();}
 
 // ══════════════════════════════════════════════
 // THEME COLORS
@@ -4136,14 +4136,14 @@ async function fetchNavViaClaudeAI(codes){
 
   try {
     const resp = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(14000),
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          tools: [{"google_search_retrieval": {}}]
+          tools: [{ googleSearch: {} }]
         })
       }
     );
