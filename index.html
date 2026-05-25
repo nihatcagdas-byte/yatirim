@@ -1131,6 +1131,16 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
 </div>
 
 <script>
+// ── Fon Pozisyon Hesaplama (erken tanım) ──
+function getFundTxSide(lot){return lot?.side==='sell'?'sell':'buy';}
+function calcFundPosition(fund){
+  const txs=[...(fund?.lots||[])].sort((a,b)=>{const ad=(a?.date||'').localeCompare(b?.date||'');if(ad!==0)return ad;return Number(a?.id||0)-Number(b?.id||0);});
+  let shares=0,cost=0,realized=0,investedCost=0,soldCost=0;
+  txs.forEach(tx=>{const side=getFundTxSide(tx);const qty=Math.max(0,Number(tx?.shares)||0);const nav=Math.max(0,Number(tx?.nav)||0);if(!qty||!nav)return;if(side==='buy'){shares+=qty;cost+=qty*nav;investedCost+=qty*nav;return;}if(shares<=0)return;const sellQty=Math.min(qty,shares);const avgCost=shares?cost/shares:0;realized+=sellQty*(nav-avgCost);soldCost+=avgCost*sellQty;shares-=sellQty;cost-=avgCost*sellQty;});
+  return {shares:Math.max(0,shares),cost:Math.max(0,cost),avgNav:shares>0?cost/shares:0,realized,investedCost:Math.max(0,investedCost),soldCost:Math.max(0,soldCost)};
+}
+
+
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
@@ -2582,6 +2592,14 @@ function calcStockCurrentValue(){
     return tot+cp*l;
   },0);
 }
+function getFundTxSide(lot){return lot?.side==='sell'?'sell':'buy';}
+function calcFundPosition(fund){
+  const txs=[...(fund?.lots||[])].sort((a,b)=>{const ad=(a?.date||'').localeCompare(b?.date||'');if(ad!==0)return ad;return Number(a?.id||0)-Number(b?.id||0);});
+  let shares=0,cost=0,realized=0,investedCost=0,soldCost=0;
+  txs.forEach(tx=>{const side=getFundTxSide(tx);const qty=Math.max(0,Number(tx?.shares)||0);const nav=Math.max(0,Number(tx?.nav)||0);if(!qty||!nav)return;if(side==='buy'){shares+=qty;cost+=qty*nav;investedCost+=qty*nav;return;}if(shares<=0)return;const sellQty=Math.min(qty,shares);const avgCost=shares?cost/shares:0;realized+=sellQty*(nav-avgCost);soldCost+=avgCost*sellQty;shares-=sellQty;cost-=avgCost*sellQty;});
+  return {shares:Math.max(0,shares),cost:Math.max(0,cost),avgNav:shares>0?cost/shares:0,realized,investedCost:Math.max(0,investedCost),soldCost:Math.max(0,soldCost)};
+}
+
 function calcFundCurrentValue(){
   if(!S.funds) S.funds=[];
   return S.funds.reduce((tot,f)=>{
@@ -4118,14 +4136,14 @@ async function fetchNavViaClaudeAI(codes){
 
   try {
     const resp = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(14000),
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          tools: [{ google_search: {} }]
+          tools: [{"google_search_retrieval": {}}]
         })
       }
     );
