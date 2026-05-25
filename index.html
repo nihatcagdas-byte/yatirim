@@ -1146,7 +1146,6 @@ function load(){
   if(!S.funds)S.funds=[];
   if(!S.fundDistributions)S.fundDistributions=[];
   loadSettings();
-  loadApiKey();
 }
 function save(){
   localStorage.setItem('tmttakip3',JSON.stringify(S));
@@ -1473,7 +1472,7 @@ function delNote(id){S.notes=S.notes.filter(n=>n.id!==id);save();renderNotes();}
 // ══════════════════════════════════════════════
 // RENDER ALL
 // ══════════════════════════════════════════════
-function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();renderCompare();renderFundCompare();checkAlerts();fillCmpSels();fillFundCmpSels();fillNoteTickerList();updateCurrencyUI();}
+function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();renderCompare();renderFundCompare();checkAlerts();fillCmpSels();fillFundCmpSels();fillNoteTickerList();updateCurrencyUI();if(typeof renderFunds==='function')renderFunds();}
 
 // ══════════════════════════════════════════════
 // THEME COLORS
@@ -2187,7 +2186,6 @@ function loadSettings(){
   const rd=document.getElementById('remind-days');if(rd&&s['remind-days'])rd.value=s['remind-days'];
   const ap=document.getElementById('auto-price');if(ap)ap.checked=s['auto-price']===true||s['auto-price']==='true';
   const an=document.getElementById('auto-nav');if(an)an.checked=s['auto-nav']===true||s['auto-nav']==='true';
-  loadApiKey();
 }
 function saveSettings(){
   S.settings=S.settings||{};
@@ -3145,6 +3143,7 @@ function today(){return new Date().toISOString().split('T')[0];}
 load();
 setTheme(S.settings?.theme||'ocean');
 renderAll();
+loadApiKey();
 try{
   const restorePage=sessionStorage.getItem(TXN_REFRESH_PAGE_KEY);
   if(restorePage){
@@ -4715,9 +4714,7 @@ function parseImportFundsCSV(text){
   alert('✅ '+added+' fon işlemi aktarıldı.');
 }
 
-// renderAll'a ekle
-const _origRenderAll=renderAll;
-function renderAll(){_origRenderAll();renderFunds();}
+// renderAll — renderFunds dahil
 
 // İlk yükleme
 if(!S.funds)S.funds=[];
