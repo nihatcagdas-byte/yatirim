@@ -4062,44 +4062,87 @@ function _dateStr(offsetDays){
   return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
 }
 
+async function fetchNavViaClaudeAI(codes){
+  // Claude API ile web search kullanarak fon NAV'larını çeker
+  const prompt = `Aşağıdaki Türk yatırım fonu kodlarının GÜNCEL birim pay değerini (NAV) bul. Her biri için sadece en son fiyatı döndür. Kaynak olarak ekofin.net, fintables.com veya tefas.gov.tr kullanabilirsin.
+
+Fon kodları: ${codes.join(', ')}
+
+SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:
+{"GTL": 1.234567, "PBR": 3.96, "PHE": 2.64}
+
+Bulamadığın fonlar için null yaz. Sadece JSON döndür.`;
+
+  try {
+    const resp = await Promise.race([
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          tools: [{"type": "web_search_20250305", "name": "web_search"}],
+          messages: [{role: 'user', content: prompt}]
+        })
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 14000))
+    ]);
+
+    if (!resp.ok) return null;
+    const data = await resp.json();
+
+    // Tüm text bloklarını birleştir
+    const text = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('');
+
+    // JSON'u parse et
+    const match = text.match(/\{[^}]+\}/);
+    if (!match) return null;
+    return JSON.parse(match[0]);
+  } catch(e) {
+    return null;
+  }
+}
+
 async function fetchAllFundNavs(){
   if(!S.funds.length){alert('Önce fon ekleyin.');return;}
   const st=document.getElementById('fund-status');
   st.style.display='block';
-  st.innerHTML='<span style="animation:spin .8s linear infinite;display:inline-block">⟳</span> TEFAS\'tan NAV çekiliyor... (maks. 15 sn)';
-  const GLOBAL_TIMEOUT_MS=15000;
-  const startedAt=Date.now();
-  const deadline=startedAt+GLOBAL_TIMEOUT_MS;
-  const withTimeout=(promise,ms)=>Promise.race([
-    promise,
-    new Promise(resolve=>setTimeout(()=>resolve(null),Math.max(1,ms)))
-  ]);
-  const tasks=S.funds.map(async(f)=>{
-    const remain=Math.max(1,deadline-Date.now());
-    const nav=await withTimeout(fetchFundNav(f.code,remain,f.tefasType),remain);
-    return {code:f.code,nav};
-  });
-  const results=await Promise.all(tasks);
+  st.style.color='';
+  st.innerHTML='<span style="display:inline-block;animation:spin .8s linear infinite">⟳</span> AI ile NAV çekiliyor... (maks. 15 sn)';
+
+  const codes=S.funds.map(f=>f.code);
+  const withTimeout=(promise,ms)=>Promise.race([promise,new Promise(resolve=>setTimeout(()=>resolve(null),ms))]);
+
+  const aiResult=await withTimeout(fetchNavViaClaudeAI(codes),15000);
+
   let ok=0,fail=[];
-  results.forEach(({code,nav})=>{
-    const f=S.funds.find(x=>x.code===code);
-    if(!f)return;
-    if(nav&&nav>0){f.curNav=nav;f.navTs=Date.now();ok++;}
-    else fail.push(code);
-  });
-  save();
-  if(ok>0){
-    st.innerHTML=`✓ ${ok} fon güncellendi${fail.length?' · '+fail.join(', ')+' bulunamadı (15 sn doldu) — Manuel girişe geçildi':''}`;
-    st.style.color='var(--green)';
-    if(fail.length){
-      setTimeout(()=>openManualNavModal(fail),600);
-    }
+  if(aiResult){
+    codes.forEach(code=>{
+      const f=S.funds.find(x=>x.code===code);
+      if(!f)return;
+      const nav=parseFloat(aiResult[code]);
+      if(nav>0){f.curNav=nav;f.navTs=Date.now();ok++;}
+      else fail.push(code);
+    });
   } else {
-    st.innerHTML='⚠ Otomatik NAV 15 sn içinde çekilemedi — Manuel girişe geçildi';
-    st.style.color='var(--red)';
-    setTimeout(()=>openManualNavModal(S.funds.map(f=>f.code)),600);
+    fail=[...codes];
   }
-  setTimeout(()=>{st.style.display='none';st.style.color='';},8000);
+
+  save();
+
+  if(ok>0){
+    st.innerHTML=`✅ ${ok} fon güncellendi${fail.length?' &nbsp;·&nbsp; <span style="color:var(--gold)">' + fail.join(', ') + ' bulunamadı — Manuel girişe geçildi</span>':''}`;
+    st.style.color='var(--green)';
+    if(fail.length) setTimeout(()=>openManualNavModal(fail),800);
+  } else {
+    st.innerHTML='⚠ AI 15 sn içinde yanıt vermedi — Manuel girişe geçildi';
+    st.style.color='var(--red)';
+    setTimeout(()=>openManualNavModal(codes),800);
+  }
+  setTimeout(()=>{st.style.display='none';st.style.color='';},10000);
   renderFunds();
 }
 
