@@ -864,14 +864,16 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
             Google Gemini ile fon NAV fiyatları otomatik güncellenir. Tamamen ücretsiz.<br>
             Key almak için: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--ac)">aistudio.google.com/apikey</a>
           </div>
-          <div style="display:flex;gap:8px;align-items:flex-end">
-            <div class="fi" style="flex:1">
-              <label>Gemini API Key</label>
-              <input type="password" id="gemini-api-key" placeholder="AIza..." oninput="saveApiKey()" onblur="saveApiKey()" autocomplete="off">
-            </div>
-            <button class="btn bg2 sm" style="margin-bottom:1px" onclick="toggleApiKeyVisibility()">👁</button>
+          <div class="fi">
+            <label>Gemini API Key</label>
+            <input type="password" id="gemini-api-key" placeholder="AIza..." autocomplete="off">
           </div>
-          <div id="api-key-status" style="font-size:.72rem;margin-top:6px;font-family:var(--fm)"></div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn bp sm" onclick="saveApiKey()">💾 Kaydet</button>
+            <button class="btn bd sm" onclick="clearApiKey()">🗑 Sil</button>
+            <button class="btn bg2 sm" onclick="toggleApiKeyVisibility()">👁 Göster</button>
+          </div>
+          <div id="api-key-status" style="font-size:.72rem;margin-top:8px;font-family:var(--fm)"></div>
         </div>
         <div class="ss">
           <div class="stitle">📡 Canlı Fiyat</div>
@@ -1483,7 +1485,7 @@ function delNote(id){S.notes=S.notes.filter(n=>n.id!==id);save();renderNotes();}
 // ══════════════════════════════════════════════
 // RENDER ALL
 // ══════════════════════════════════════════════
-function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();renderCompare();if(typeof renderFundCompare==='function')renderFundCompare();checkAlerts();fillCmpSels();if(typeof fillFundCmpSels==='function')fillFundCmpSels();fillNoteTickerList();updateCurrencyUI();if(typeof renderFunds==='function')renderFunds();}
+function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();if(typeof renderCompare==='function')renderCompare();if(typeof renderFundCompare==='function')renderFundCompare();if(typeof checkAlerts==='function')checkAlerts();if(typeof fillCmpSels==='function')fillCmpSels();if(typeof fillFundCmpSels==='function')fillFundCmpSels();if(typeof fillNoteTickerList==='function')fillNoteTickerList();if(typeof updateCurrencyUI==='function')updateCurrencyUI();if(typeof renderFunds==='function')renderFunds();}
 
 // ══════════════════════════════════════════════
 // THEME COLORS
@@ -4098,6 +4100,13 @@ function _dateStr(offsetDays){
 }
 
 // ── Claude API Key Yönetimi ──
+function clearApiKey(){
+  localStorage.removeItem('gemini_api_key');
+  const el=document.getElementById('gemini-api-key');
+  if(el) el.value='';
+  updateApiKeyStatus();
+  alert('API key silindi.');
+}
 function saveApiKey(){
   const val=(document.getElementById('gemini-api-key')?.value||'').trim();
   if(val) localStorage.setItem('gemini_api_key',val);
