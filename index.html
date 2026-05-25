@@ -859,6 +859,21 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
           </div>
         </div>
         <div class="ss">
+          <div class="stitle">🤖 Claude AI &mdash; Otomatik NAV</div>
+          <div style="font-size:.8rem;color:var(--muted2);line-height:1.75;margin-bottom:12px">
+            Fon NAV güncelleme için Anthropic API key gereklidir. Key yalnızca bu tarayıcıda saklanır, hiçbir yere gönderilmez.<br>
+            API key almak için: <a href="https://console.anthropic.com/keys" target="_blank" style="color:var(--ac)">console.anthropic.com/keys</a>
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            <div class="fi" style="flex:1">
+              <label>Anthropic API Key</label>
+              <input type="password" id="anthropic-api-key" placeholder="sk-ant-..." oninput="saveApiKey()" autocomplete="off">
+            </div>
+            <button class="btn bg2 sm" style="margin-bottom:1px" onclick="toggleApiKeyVisibility()">👁</button>
+          </div>
+          <div id="api-key-status" style="font-size:.72rem;margin-top:6px;font-family:var(--fm)"></div>
+        </div>
+        <div class="ss">
           <div class="stitle">📡 Canlı Fiyat</div>
           <div style="font-size:.8rem;color:var(--muted2);line-height:1.75;margin-bottom:10px">
             Yahoo Finance üzerinden çekilir. BIST hisseleri için <strong style="color:var(--text)">.IS</strong> eklenir (örn: TUPRS.IS). Veriler 15 dk gecikmeli olabilir.
@@ -2171,6 +2186,7 @@ function loadSettings(){
   const rd=document.getElementById('remind-days');if(rd&&s['remind-days'])rd.value=s['remind-days'];
   const ap=document.getElementById('auto-price');if(ap)ap.checked=s['auto-price']===true||s['auto-price']==='true';
   const an=document.getElementById('auto-nav');if(an)an.checked=s['auto-nav']===true||s['auto-nav']==='true';
+  loadApiKey();
 }
 function saveSettings(){
   S.settings=S.settings||{};
@@ -4062,48 +4078,54 @@ function _dateStr(offsetDays){
   return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
 }
 
-async function fetchNavViaClaudeAI(codes){
-  // Claude API ile web search kullanarak fon NAV'larını çeker
-  const prompt = `Aşağıdaki Türk yatırım fonu kodlarının GÜNCEL birim pay değerini (NAV) bul. Her biri için sadece en son fiyatı döndür. Kaynak olarak ekofin.net, fintables.com veya tefas.gov.tr kullanabilirsin.
-
-Fon kodları: ${codes.join(', ')}
-
-SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:
-{"GTL": 1.234567, "PBR": 3.96, "PHE": 2.64}
-
-Bulamadığın fonlar için null yaz. Sadece JSON döndür.`;
-
-  try {
-    const resp = await Promise.race([
-      fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          tools: [{"type": "web_search_20250305", "name": "web_search"}],
-          messages: [{role: 'user', content: prompt}]
-        })
-      }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 14000))
-    ]);
-
-    if (!resp.ok) return null;
-    const data = await resp.json();
-
-    // Tüm text bloklarını birleştir
-    const text = (data.content || [])
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('');
-
-    // JSON'u parse et
-    const match = text.match(/\{[^}]+\}/);
-    if (!match) return null;
-    return JSON.parse(match[0]);
-  } catch(e) {
-    return null;
+// ── Claude API Key Yönetimi ──
+function saveApiKey(){
+  const val=(document.getElementById('anthropic-api-key')?.value||'').trim();
+  if(val) localStorage.setItem('anthropic_api_key',val);
+  else localStorage.removeItem('anthropic_api_key');
+  updateApiKeyStatus();
+}
+function loadApiKey(){
+  const key=localStorage.getItem('anthropic_api_key')||'';
+  const el=document.getElementById('anthropic-api-key');
+  if(el) el.value=key;
+  updateApiKeyStatus();
+}
+function updateApiKeyStatus(){
+  const el=document.getElementById('api-key-status');
+  if(!el) return;
+  const key=localStorage.getItem('anthropic_api_key')||'';
+  if(key.startsWith('sk-ant-')&&key.length>20){
+    el.innerHTML='<span style="color:var(--green)">✓ API key kaydedildi</span>';
+  } else if(key.length>0){
+    el.innerHTML='<span style="color:var(--gold)">⚠ Geçersiz format (sk-ant- ile başlamalı)</span>';
+  } else {
+    el.innerHTML='<span style="color:var(--muted2)">— Key girilmedi, NAV güncellemesi çalışmaz</span>';
   }
+}
+function toggleApiKeyVisibility(){
+  const el=document.getElementById('anthropic-api-key');
+  if(!el) return;
+  el.type=el.type==='password'?'text':'password';
+}
+
+async function fetchNavViaClaudeAI(codes){
+  const apiKey=localStorage.getItem('anthropic_api_key')||'';
+  if(!apiKey) return null;
+  const prompt=`Asagidaki Turk yatirim fonu kodlarinin GUNCEL birim pay degerini (NAV) bul. Her biri icin sadece en son fiyati dondur. Kaynak olarak ekofin.net veya tefas.gov.tr kullan.\n\nFon kodlari: ${codes.join(', ')}\n\nSADECE JSON formatinda yanit ver:\n{"KOD1": 1.234567, "KOD2": 3.96}\n\nBulamadigin fonlar icin null yaz. Sadece JSON dondur.`;
+  try {
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,tools:[{"type":"web_search_20250305","name":"web_search"}],messages:[{role:'user',content:prompt}]})
+    });
+    if(!resp.ok) return null;
+    const data=await resp.json();
+    const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    const match=text.match(/\{[\s\S]*?\}/);
+    if(!match) return null;
+    return JSON.parse(match[0]);
+  } catch(e){ return null; }
 }
 
 async function fetchAllFundNavs(){
