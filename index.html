@@ -1529,7 +1529,7 @@ function recoverFromKey(key){
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
       <div class="kcard"><span class="kcard-icon">🏦</span><div class="klabel">Toplam Anapara</div><div class="kval mo" id="dep2-principal">₺0</div></div>
       <div class="kcard"><span class="kcard-icon">💚</span><div class="klabel">Aylık Net Faiz</div><div class="kval mo pos" id="dep2-monthly">₺0</div></div>
-      <div class="kcard"><span class="kcard-icon">📅</span><div class="klabel">Yıllık Net Faiz</div><div class="kval mo pos" id="dep2-annual">₺0</div></div>
+      <div class="kcard"><span class="kcard-icon">💎</span><div class="klabel">Tüm Mevduat Sonu</div><div class="kval mo" id="dep2-annual">₺0</div></div>
     </div>
     <div id="dep2-list"><div class="empty"><div class="ei">🏦</div><div class="et">Henüz mevduat eklenmedi.</div></div></div>
   </div>
@@ -6545,11 +6545,12 @@ function calcDepositInterest(){
     daysText = '(tarih girin)';
   }
 
+  const maturityTotal = principal + totalNet;
   const daysEl = document.getElementById('dep-prev-days');
   if(daysEl) daysEl.textContent = daysText;
   document.getElementById('dep-prev-monthly').textContent = fmt(totalGross);
   document.getElementById('dep-prev-net').textContent = fmt(totalNet);
-  document.getElementById('dep-prev-annual').textContent = fmt(monthlyNet) + '/ay';
+  document.getElementById('dep-prev-annual').textContent = fmt(maturityTotal);
 }
 
 function openAddDeposit(){
@@ -6616,8 +6617,9 @@ function saveDeposit(){
     monthlyNet = totalNet;
   }
 
+  const maturityTotal = principal + totalNet;
   const item = {id: id||++_depCounter, bank, principal, rate, startDate, maturity, type, tax, note,
-    days, totalGross, totalNet, monthlyGross: totalGross, monthlyNet, annualNet: monthlyNet*12};
+    days, totalGross, totalNet, maturityTotal, monthlyGross: totalGross, monthlyNet, annualNet: monthlyNet*12};
   if(id){
     const idx = S.finance.deposits.findIndex(x=>x.id===id);
     if(idx>=0) S.finance.deposits[idx] = item;
@@ -6698,7 +6700,7 @@ function renderDeposits(){
       <div style="text-align:right;margin-left:12px">
         <div style="font-size:.75rem;color:var(--muted);font-family:var(--fm)">Aylık net</div>
         <div style="font-size:1rem;font-weight:800;font-family:var(--fm);color:var(--green)">${fmt(d.monthlyNet)}</div>
-        <div style="font-size:.68rem;color:var(--muted);font-family:var(--fm)">Yıllık: ${fmt(d.annualNet)}</div>
+        <div style="font-size:.75rem;font-weight:700;font-family:var(--fm);color:var(--ac)">Sonu: ${fmt(d.maturityTotal||d.principal+d.totalNet||d.principal)}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;margin-left:10px">
         <button class="btn bg2 sm" onclick="openEditDeposit(${d.id})">✏</button>
@@ -6886,10 +6888,10 @@ function renderDeposit2(){
   const deps=S.finance?.deposits||[];
   const totalPrincipal=deps.reduce((a,d)=>a+d.principal,0);
   const totalMonthly=deps.reduce((a,d)=>a+(d.monthlyNet||0),0);
-  const totalAnnual=deps.reduce((a,d)=>a+(d.annualNet||0),0);
+  const totalMaturity=deps.reduce((a,d)=>a+(d.maturityTotal||d.principal||0),0);
   ['dep2-principal','dep2-monthly','dep2-annual'].forEach((id,i)=>{
     const el=document.getElementById(id);
-    if(el) el.textContent=fmt([totalPrincipal,totalMonthly,totalAnnual][i]);
+    if(el) el.textContent=fmt([totalPrincipal,totalMonthly,totalMaturity][i]);
   });
   const list=document.getElementById('dep2-list');
   if(!list) return;
@@ -6918,7 +6920,7 @@ function renderDeposit2(){
       <div style="text-align:right;margin:0 12px">
         <div style="font-size:.7rem;color:var(--muted)">Aylık net</div>
         <div style="font-size:1rem;font-weight:800;font-family:var(--fm);color:var(--green)">${fmt(d.monthlyNet)}</div>
-        <div style="font-size:.68rem;color:var(--muted);font-family:var(--fm)">Yıllık: ${fmt(d.annualNet)}</div>
+        <div style="font-size:.75rem;font-weight:700;font-family:var(--fm);color:var(--ac)">Sonu: ${fmt(d.maturityTotal||d.principal+d.totalNet||d.principal)}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px">
         <button class="btn bg2 sm" onclick="openEditDeposit(${d.id})">✏</button>
@@ -7270,7 +7272,7 @@ function renderDividendsPage(){
         <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Vade Süresi</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px" id="dep-prev-days">—</div></div>
         <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Toplam Faiz (Brüt)</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px" id="dep-prev-monthly">—</div></div>
         <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Toplam Net</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px;color:var(--green)" id="dep-prev-net">—</div></div>
-        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Aylık Net Ort.</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px;color:var(--green)" id="dep-prev-annual">—</div></div>
+        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Faiz Sonu Toplam</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px;color:var(--ac)" id="dep-prev-annual">—</div></div>
       </div>
     </div>
     <div class="ma">
