@@ -507,6 +507,82 @@ body{overflow-x:hidden}
 </head>
 <body>
 
+<script>
+// ── Early lock functions (must be available before full script loads) ──
+var LOCK_KEY='tt_lock_hash';
+var LOCK_TS_KEY='tt_lock_ts';
+var LOCK_TIMEOUT=15*60*1000;
+
+function hashPwd(pwd){
+  var str=pwd+'YatirimTakip_salt_2025';
+  var h=0,h2=5381;
+  for(var i=0;i<str.length;i++){
+    var c=str.charCodeAt(i);
+    h=((h<<5)-h)+c; h=h&h;
+    h2=((h2<<5)+h2)+c; h2=h2&h2;
+  }
+  return (Math.abs(h).toString(16).padStart(8,'0'))+(Math.abs(h2).toString(16).padStart(8,'0'))+str.length.toString(16);
+}
+
+function setupLock(){
+  var pwd=document.getElementById('lock-pwd').value;
+  if(pwd.length<8){document.getElementById('lock-err').textContent='Şifre 8 karakter olmalıdır.';return;}
+  var h=hashPwd(pwd);
+  try{localStorage.setItem(LOCK_KEY,h);localStorage.setItem(LOCK_TS_KEY,Date.now().toString());}catch(e){}
+  document.getElementById('lock-screen').style.display='none';
+  document.getElementById('app-layout').style.display='flex';
+  document.getElementById('lock-err').textContent='';
+}
+
+function unlockApp(){
+  var pwd=document.getElementById('lock-pwd').value;
+  var stored;
+  try{stored=localStorage.getItem(LOCK_KEY);}catch(e){stored=null;}
+  if(!stored){setupLock();return;}
+  if(!pwd){document.getElementById('lock-err').textContent='Şifre giriniz.';return;}
+  var h=hashPwd(pwd);
+  if(h===stored){
+    try{localStorage.setItem(LOCK_TS_KEY,Date.now().toString());}catch(e){}
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('app-layout').style.display='flex';
+    document.getElementById('lock-err').textContent='';
+    document.getElementById('lock-pwd').value='';
+  } else {
+    document.getElementById('lock-err').textContent='Yanlış şifre. Tekrar deneyin.';
+    document.getElementById('lock-pwd').value='';
+    document.getElementById('lock-pwd').focus();
+  }
+}
+
+function lockApp(){
+  try{localStorage.setItem(LOCK_TS_KEY,'0');}catch(e){}
+  document.getElementById('app-layout').style.display='none';
+  document.getElementById('lock-screen').style.display='flex';
+  document.getElementById('lock-pwd').value='';
+  document.getElementById('lock-err').textContent='';
+}
+
+// Init on page load
+(function(){
+  try{
+    var stored=localStorage.getItem(LOCK_KEY);
+    var ts=parseInt(localStorage.getItem(LOCK_TS_KEY)||'0');
+    if(!stored){
+      document.getElementById('lock-sub-text').textContent='İlk kullanım: 8 karakterli şifre belirleyin';
+      document.getElementById('lock-setup-hint').style.display='block';
+    } else if(Date.now()-ts<LOCK_TIMEOUT){
+      document.getElementById('lock-screen').style.display='none';
+      document.getElementById('app-layout').style.display='flex';
+      try{localStorage.setItem(LOCK_TS_KEY,Date.now().toString());}catch(e){}
+    }
+  }catch(e){
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('app-layout').style.display='flex';
+  }
+  try{document.getElementById('lock-pwd').focus();}catch(e){}
+})();
+</script>
+
 <!-- LOCK SCREEN -->
 <div id="lock-screen">
   <div class="lock-box">
@@ -521,6 +597,7 @@ body{overflow-x:hidden}
     </div>
   </div>
 </div>
+
 
 <!-- ALERT -->
 <div class="alert-banner" id="ab">
@@ -1934,10 +2011,17 @@ function delNote(id){S.notes=S.notes.filter(n=>n.id!==id);save();renderNotes();}
 // ══════════════════════════════════════════════
 function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();if(typeof renderCompare==='function')renderCompare();if(typeof renderFundCompare==='function')renderFundCompare();if(typeof checkAlerts==='function')checkAlerts();if(typeof fillCmpSels==='function')fillCmpSels();if(typeof fillFundCmpSels==='function')fillFundCmpSels();if(typeof fillNoteTickerList==='function')fillNoteTickerList();if(typeof updateCurrencyUI==='function')updateCurrencyUI();if(typeof renderFunds==='function')renderFunds();
 // Finance pages — only re-render the active finance tab
-const activeFinTab=document.querySelector('.wtab.active');
-if(activeFinTab){const t=activeFinTab.dataset.tab;if(t==='cashflow')renderCashflow();else if(t==='balance')renderWealth();else if(t==='projection')renderProjection();else if(t==='bes')renderBES();}
-// Dashboard net flow widget
-renderDashboardNetWidget();
+try{
+  const activeFinTab=document.querySelector('.wtab.active');
+  if(activeFinTab&&typeof renderCashflow==='function'){
+    const t=activeFinTab.dataset.tab;
+    if(t==='cashflow')renderCashflow();
+    else if(t==='balance')renderWealth();
+    else if(t==='projection')renderProjection();
+    else if(t==='bes')renderBES();
+  }
+}catch(e){}
+try{if(typeof renderDashboardNetWidget==='function')renderDashboardNetWidget();}catch(e){}
 }
 function renderDashboardNetWidget(){
   const el=document.getElementById('dash-net-widget');
@@ -5208,118 +5292,7 @@ if(_fif&&!_fif._bound){_fif._bound=true;_fif.addEventListener('change',e=>{const
 renderFunds();
 
 // ══════════════════════════════════════════════
-// LOCK / UNLOCK SYSTEM
-// ══════════════════════════════════════════════
-const LOCK_KEY='tt_lock_hash';
-const LOCK_TS_KEY='tt_lock_ts';
-const LOCK_TIMEOUT=15*60*1000; // 15 dakika
 
-function hashPwd(pwd){
-  // Basit ama yeterli hash — file:// protokolünde de çalışır
-  const str=pwd+'YatirimTakip_salt_2025';
-  let h=0;
-  for(let i=0;i<str.length;i++){
-    const c=str.charCodeAt(i);
-    h=((h<<5)-h)+c;
-    h=h&h;
-  }
-  // İkinci geçiş — daha güçlü karma
-  let h2=5381;
-  for(let i=0;i<str.length;i++){
-    h2=((h2<<5)+h2)+str.charCodeAt(i);
-    h2=h2&h2;
-  }
-  return (Math.abs(h).toString(16).padStart(8,'0'))+(Math.abs(h2).toString(16).padStart(8,'0'))+str.length.toString(16);
-}
-
-function setupLock(){
-  const pwd=document.getElementById('lock-pwd').value;
-  if(pwd.length<8){document.getElementById('lock-err').textContent='Şifre 8 karakter olmalıdır.';return;}
-  const h=hashPwd(pwd);
-  localStorage.setItem(LOCK_KEY,h);
-  localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
-  document.getElementById('lock-screen').style.display='none';
-  document.getElementById('app-layout').style.display='flex';
-  document.getElementById('lock-err').textContent='';
-}
-
-function unlockApp(){
-  const pwd=document.getElementById('lock-pwd').value;
-  const stored=localStorage.getItem(LOCK_KEY);
-  if(!stored){
-    setupLock();
-    return;
-  }
-  if(!pwd){document.getElementById('lock-err').textContent='Şifre giriniz.';return;}
-  const h=hashPwd(pwd);
-  if(h===stored){
-    localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
-    document.getElementById('lock-screen').style.display='none';
-    document.getElementById('app-layout').style.display='flex';
-    document.getElementById('lock-err').textContent='';
-    document.getElementById('lock-pwd').value='';
-  } else {
-    document.getElementById('lock-err').textContent='Yanlış şifre. Tekrar deneyin.';
-    document.getElementById('lock-pwd').value='';
-    document.getElementById('lock-pwd').focus();
-  }
-}
-
-function lockApp(){
-  localStorage.setItem(LOCK_TS_KEY,'0');
-  document.getElementById('app-layout').style.display='none';
-  document.getElementById('lock-screen').style.display='flex';
-  document.getElementById('lock-pwd').value='';
-  document.getElementById('lock-err').textContent='';
-}
-
-function showLockSetup(){
-  document.getElementById('lock-sub-text').textContent='İlk kullanım: 8 karakterli şifre belirleyin';
-  document.getElementById('lock-setup-hint').style.display='none';
-  document.getElementById('lock-pwd').focus();
-}
-
-// Auto-lock on inactivity
-let _lastActivity=Date.now();
-['click','keydown','mousemove','touchstart'].forEach(ev=>
-  document.addEventListener(ev,()=>{
-    _lastActivity=Date.now();
-    localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
-  })
-);
-setInterval(()=>{
-  const stored=localStorage.getItem(LOCK_KEY);
-  if(!stored)return;
-  const appVisible=document.getElementById('app-layout').style.display!=='none';
-  if(!appVisible)return;
-  if(Date.now()-_lastActivity>LOCK_TIMEOUT) lockApp();
-},30000);
-
-// Init lock check
-(function initLockCheck(){
-  try{
-    const stored=localStorage.getItem(LOCK_KEY);
-    const ts=parseInt(localStorage.getItem(LOCK_TS_KEY)||'0');
-    if(!stored){
-      document.getElementById('lock-sub-text').textContent='İlk kullanım: 8 karakterli şifre belirleyin';
-      document.getElementById('lock-setup-hint').style.display='block';
-      document.getElementById('lock-screen').style.display='flex';
-      document.getElementById('app-layout').style.display='none';
-    } else if(Date.now()-ts<LOCK_TIMEOUT){
-      document.getElementById('lock-screen').style.display='none';
-      document.getElementById('app-layout').style.display='flex';
-      localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
-    } else {
-      document.getElementById('lock-screen').style.display='flex';
-      document.getElementById('app-layout').style.display='none';
-    }
-  }catch(e){
-    // localStorage blocked — bypass lock
-    document.getElementById('lock-screen').style.display='none';
-    document.getElementById('app-layout').style.display='flex';
-  }
-  try{document.getElementById('lock-pwd').focus();}catch(e){}
-})();
 
 // ══════════════════════════════════════════════
 // SIDEBAR TOGGLE
@@ -5667,7 +5640,24 @@ function renderProjection(){
   if(canvas){
     if(_projChart2){_projChart2.destroy();_projChart2=null;}
     const c=tc();
-    _projChart2=new Chart(canvas,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:c.tick}}},scales:{x:{ticks:{color:c.tick,maxTicksLimit:8}},y:{ticks:{color:c.tick,callback:v=>{if(v>=1e6) return '₺'+(v/1e6).toFixed(1)+'M';if(v>=1e3) return '₺'+(v/1e3).toFixed(0)+'K';return '₺'+v;}}}}}}});
+    _projChart2=new Chart(canvas,{
+      type:'line',
+      data:{labels,datasets},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{labels:{color:c.tick,font:{size:11},boxWidth:10,padding:12}}},
+        scales:{
+          x:{ticks:{color:c.tick,maxTicksLimit:8,font:{size:10}}},
+          y:{ticks:{color:c.tick,callback:function(v){
+            if(v>=1000000) return '₺'+(v/1000000).toFixed(1)+'M';
+            if(v>=1000) return '₺'+(v/1000).toFixed(0)+'K';
+            return '₺'+v;
+          }}}
+        }
+      }
+    });
   }
 
   // Summary
