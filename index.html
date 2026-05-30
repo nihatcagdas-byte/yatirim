@@ -708,6 +708,9 @@ function recoverFromKey(key){
       <button class="sb-item" data-page="stocks" data-tip-sb="Hisseler" onclick="showPage('stocks',this)">
         <span class="sb-item-icon">📈</span><span class="sb-item-label">Hisseler</span>
       </button>
+      <button class="sb-item" data-page="dividends" data-tip-sb="Temettü" onclick="showPage('dividends',this)">
+        <span class="sb-item-icon">💰</span><span class="sb-item-label">Temettü</span>
+      </button>
       <button class="sb-item" data-page="funds" data-tip-sb="Fonlar" onclick="showPage('funds',this)">
         <span class="sb-item-icon">📦</span><span class="sb-item-label">Fonlar</span>
       </button>
@@ -932,24 +935,31 @@ function recoverFromKey(key){
       </div>
     </div>
 
-    <!-- ALT: Isı haritası -->
-    <div class="cb">
-      <div class="ch">
-        <div class="ct">Temettü <span>Isı Haritası</span></div>
-        <div style="font-size:.68rem;color:var(--muted);font-family:var(--fm)">Aylık bazda alınan temettü yoğunluğu</div>
-      </div>
-      <div class="heatmap" id="heatmap"></div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:12px">
-        <span style="font-size:.65rem;color:var(--muted);font-family:var(--fm)">Az</span>
-        <div style="display:flex;gap:3px">
-          <div style="width:14px;height:14px;border-radius:4px;background:var(--sf3)"></div>
-          <div class="hm-cell lv1" style="width:14px;height:14px;border-radius:4px"></div>
-          <div class="hm-cell lv2" style="width:14px;height:14px;border-radius:4px"></div>
-          <div class="hm-cell lv3" style="width:14px;height:14px;border-radius:4px"></div>
-          <div class="hm-cell lv4" style="width:14px;height:14px;border-radius:4px"></div>
+    <!-- ÖZET SATIRLARI: Hisse + Temettü -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+      <!-- Hisse Özeti -->
+      <div class="cb" style="padding:18px">
+        <div class="ch" style="margin-bottom:14px">
+          <div class="ct">Hisse <span>Özeti</span></div>
+          <button class="btn bg2 sm" onclick="showPage('stocks')">Detay →</button>
         </div>
-        <span style="font-size:.65rem;color:var(--muted);font-family:var(--fm)">Çok</span>
+        <div id="dash-stock-summary">
+          <div style="color:var(--muted);font-size:.8rem">Hisse eklenmedi</div>
+        </div>
       </div>
+
+      <!-- Temettü Özeti -->
+      <div class="cb" style="padding:18px">
+        <div class="ch" style="margin-bottom:14px">
+          <div class="ct">Temettü <span>Özeti</span></div>
+          <button class="btn bg2 sm" onclick="showPage('dividends')">Detay →</button>
+        </div>
+        <div id="dash-div-summary">
+          <div style="color:var(--muted);font-size:.8rem">Temettü kaydı yok</div>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -1039,6 +1049,71 @@ function recoverFromKey(key){
     <!-- FON KARTLARI -->
     <div id="funds-area">
       <div class="empty"><div class="ei">📦</div><div class="et">Henüz fon eklenmedi.<br>Sağ üstten ekleyebilirsiniz.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TEMETTİ ═══════════ -->
+<div id="p-dividends" class="page">
+  <div class="wrap">
+    <div class="pg-header">
+      <div>
+        <div class="pg-title">Temettü <span>Takibi</span></div>
+        <div class="pg-sub">Tüm temettü ödemeleri, geçmiş ve analiz</div>
+      </div>
+      <button class="btn bp" onclick="openDivModal()">+ Temettü Ekle</button>
+    </div>
+
+    <!-- KPI -->
+    <div class="kgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+      <div class="kcard"><span class="kcard-icon">💰</span><div class="klabel">Toplam Temettü</div><div class="kval mo pos" id="dv-total">₺0</div><div class="ksub" id="dv-count">0 ödeme</div></div>
+      <div class="kcard"><span class="kcard-icon">📅</span><div class="klabel">Bu Yıl</div><div class="kval mo pos" id="dv-thisyear">₺0</div><div class="ksub" id="dv-thisyear-cnt"></div></div>
+      <div class="kcard"><span class="kcard-icon">📊</span><div class="klabel">Ort. Temettü Verimi</div><div class="kval mo" id="dv-yield">%0.00</div><div class="ksub">yıllık brüt tahmini</div></div>
+      <div class="kcard"><span class="kcard-icon">🔥</span><div class="klabel">En Yüksek Ödeme</div><div class="kval mo" id="dv-max">₺0</div><div class="ksub" id="dv-max-ticker"></div></div>
+    </div>
+
+    <!-- GRAFİK + ISILI HARİTASI -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="cb">
+        <div class="ch">
+          <div class="ct">Temettü <span>Geçmişi</span></div>
+          <div class="ctabs">
+            <button class="ctab active" onclick="setDCM('monthly',this)">Aylık</button>
+            <button class="ctab" onclick="setDCM('yearly',this)">Yıllık</button>
+          </div>
+        </div>
+        <canvas id="divChart" height="120"></canvas>
+      </div>
+      <div class="cb">
+        <div class="ch"><div class="ct">Temettü <span>Isı Haritası</span></div></div>
+        <div class="heatmap" id="heatmap"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:10px">
+          <span style="font-size:.62rem;color:var(--muted)">Az</span>
+          <div style="display:flex;gap:3px">
+            <div style="width:12px;height:12px;border-radius:3px;background:var(--sf3)"></div>
+            <div class="hm-cell lv1" style="width:12px;height:12px;border-radius:3px"></div>
+            <div class="hm-cell lv2" style="width:12px;height:12px;border-radius:3px"></div>
+            <div class="hm-cell lv3" style="width:12px;height:12px;border-radius:3px"></div>
+            <div class="hm-cell lv4" style="width:12px;height:12px;border-radius:3px"></div>
+          </div>
+          <span style="font-size:.62rem;color:var(--muted)">Çok</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLO -->
+    <div class="sh">
+      <div class="st">Ödeme <span>Listesi</span></div>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>Hisse</th><th>Tarih</th><th>Hisse Başına</th><th>Toplam</th><th>Dönem</th><th></th>
+        </tr></thead>
+        <tbody id="div-table-body">
+          <tr><td colspan="6"><div class="empty"><div class="ei">💰</div><div class="et">Temettü kaydı yok.</div></div></td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -2109,6 +2184,7 @@ function showPage(id,btn){
   else if(id==='projection') setTimeout(renderProjection2,50);
   else if(id==='bes') setTimeout(renderBES2,50);
   else if(id==='goldfx') setTimeout(renderGoldFx,50);
+  else if(id==='dividends') setTimeout(renderDividendsPage,50);
   else if(id==='deposit') setTimeout(renderDeposit2,50);
   else renderAll();
   if(id==='settings') setTimeout(loadApiKey,50);
@@ -2315,6 +2391,7 @@ try{
     else if(pid==='p-projection'&&typeof renderProjection2==='function') renderProjection2();
     else if(pid==='p-bes'&&typeof renderBES2==='function') renderBES2();
     else if(pid==='p-goldfx'&&typeof renderGoldFx==='function') renderGoldFx();
+    else if(pid==='p-dividends'&&typeof renderDividendsPage==='function') renderDividendsPage();
     else if(pid==='p-deposit'&&typeof renderDeposit2==='function') renderDeposit2();
   }
 }catch(e){}
@@ -6871,13 +6948,123 @@ function renderDashboardNew(){
       </div>`).join('')||'<div style="color:var(--muted);font-size:.8rem;padding:12px 0">Gelir kaydı yok</div>';
     if(incTotalEl) incTotalEl.textContent=fmt(totalIncome)+' / ay';
   }
+  // Dashboard widget'ları
+  if(typeof renderDashStockSummary==='function') renderDashStockSummary();
+  if(typeof renderDashDivSummary==='function') renderDashDivSummary();
 }
 
 function setDashAssetTab(mode, btn){
   document.querySelectorAll('#dash-asset-tabs .ctab').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
-  // Re-render bars with different mode if needed
   renderDashboardNew();
+}
+
+function renderDashStockSummary(){
+  const el = document.getElementById('dash-stock-summary');
+  if(!el) return;
+  const stocks = S.stocks||[];
+  if(!stocks.length){ el.innerHTML='<div style="color:var(--muted);font-size:.8rem">Henüz hisse eklenmedi</div>'; return; }
+  let tI=0, tC=0;
+  stocks.forEach(s=>{
+    const lots = s.lots||[];
+    const totalLots = lots.reduce((a,x)=>a+x.lots,0);
+    const avg = totalLots ? lots.reduce((a,x)=>a+x.price*x.lots,0)/totalLots : 0;
+    tI += avg*totalLots;
+    const cp = S.prices[s.ticker]?.price || avg;
+    tC += cp*totalLots;
+  });
+  const pl = tC-tI;
+  const plp = tI ? (pl/tI*100) : 0;
+  const pos = pl>=0;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div><div class="klabel">Yatırım</div><div class="kval mo" style="font-size:1.1rem">${fmt(tI)}</div></div>
+      <div><div class="klabel">Güncel Değer</div><div class="kval mo" style="font-size:1.1rem">${fmt(tC)}</div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:${pos?'rgba(0,212,170,.08)':'rgba(255,69,96,.08)'}">
+      <span style="font-size:.8rem;font-weight:700;color:var(--muted)">Kâr / Zarar</span>
+      <span style="font-size:1rem;font-weight:800;font-family:var(--fm);color:${pos?'var(--green)':'var(--red)'}">
+        ${pos?'▲ +':'▼ '}${fmt(pl)} <span style="font-size:.75rem">(${pos?'+':''}${plp.toFixed(1)}%)</span>
+      </span>
+    </div>
+    <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:.75rem;color:var(--muted)">${stocks.length} hisse · ${stocks.reduce((a,s)=>a+(s.lots||[]).length,0)} alım</span>
+      <button class="btn bg2 sm" onclick="showPage('stocks')">Detaya git →</button>
+    </div>`;
+}
+
+function renderDashDivSummary(){
+  const el = document.getElementById('dash-div-summary');
+  if(!el) return;
+  const divs = S.dividends||[];
+  if(!divs.length){ el.innerHTML='<div style="color:var(--muted);font-size:.8rem">Henüz temettü kaydı yok</div>'; return; }
+  const total = divs.reduce((a,d)=>a+d.total,0);
+  const thisYear = new Date().getFullYear().toString();
+  const thisYearTotal = divs.filter(d=>(d.date||'').startsWith(thisYear)).reduce((a,d)=>a+d.total,0);
+  const lastDiv = [...divs].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  // Aylık ortalama (son 12 ay)
+  const yr = new Date(); yr.setFullYear(yr.getFullYear()-1);
+  const last12 = divs.filter(d=>new Date(d.date)>=yr).reduce((a,d)=>a+d.total,0);
+  const monthly12 = last12/12;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div><div class="klabel">Toplam Alınan</div><div class="kval mo pos" style="font-size:1.1rem">${fmt(total)}</div></div>
+      <div><div class="klabel">Bu Yıl</div><div class="kval mo pos" style="font-size:1.1rem">${fmt(thisYearTotal)}</div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(0,212,170,.08)">
+      <span style="font-size:.8rem;font-weight:700;color:var(--muted)">Aylık Ort. (12 ay)</span>
+      <span style="font-size:1rem;font-weight:800;font-family:var(--fm);color:var(--green)">▲ ${fmt(monthly12)}</span>
+    </div>
+    <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:.75rem;color:var(--muted)">${divs.length} ödeme · Son: ${lastDiv?.ticker||''} ${lastDiv?.date||''}</span>
+      <button class="btn bg2 sm" onclick="showPage('dividends')">Detaya git →</button>
+    </div>`;
+}
+
+function renderDividendsPage(){
+  const divs = S.dividends||[];
+  const stocks = S.stocks||[];
+  const thisYear = new Date().getFullYear().toString();
+  
+  // KPI
+  const total = divs.reduce((a,d)=>a+d.total,0);
+  const thisYearDivs = divs.filter(d=>(d.date||'').startsWith(thisYear));
+  const thisYearTotal = thisYearDivs.reduce((a,d)=>a+d.total,0);
+  let yS=0,yN=0;
+  stocks.forEach(s=>s.lots.forEach(x=>{if(x.expDiv&&x.price){yS+=(x.expDiv/x.price)*100;yN++;}}));
+  const maxDiv = divs.length ? divs.reduce((a,b)=>a.total>b.total?a:b) : null;
+
+  const setEl=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  setEl('dv-total', fmt(total));
+  setEl('dv-count', divs.length+' ödeme');
+  setEl('dv-thisyear', fmt(thisYearTotal));
+  setEl('dv-thisyear-cnt', thisYearDivs.length+' ödeme bu yıl');
+  setEl('dv-yield', yN?'%'+(yS/yN).toFixed(2):'%0.00');
+  setEl('dv-max', maxDiv?fmt(maxDiv.total):'₺0');
+  setEl('dv-max-ticker', maxDiv?maxDiv.ticker+' · '+maxDiv.date:'');
+
+  // Tablo
+  const tbody = document.getElementById('div-table-body');
+  if(tbody){
+    if(!divs.length){
+      tbody.innerHTML='<tr><td colspan="6"><div class="empty"><div class="ei">💰</div><div class="et">Temettü kaydı yok.</div></div></td></tr>';
+    } else {
+      const sorted = [...divs].sort((a,b)=>b.date.localeCompare(a.date));
+      tbody.innerHTML = sorted.map(d=>`
+        <tr>
+          <td><span class="tk">${d.ticker}</span></td>
+          <td class="mo">${d.date}</td>
+          <td class="mo pos">₺${(d.perShare||0).toFixed(2)}</td>
+          <td class="mo pos" style="font-weight:700">${fmt(d.total)}</td>
+          <td style="color:var(--muted2);font-size:.78rem">${d.period||'—'}</td>
+          <td><button class="btn bd sm" onclick="delDiv(${d.id})">✕</button></td>
+        </tr>`).join('');
+    }
+  }
+
+  // Grafik ve ısı haritası
+  if(typeof renderDivChart==='function') renderDivChart();
+  if(typeof renderHeatmap==='function') renderHeatmap();
 }
 
 
