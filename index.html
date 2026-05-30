@@ -2457,6 +2457,8 @@ function divMonthBadges(months){
 // DASHBOARD
 // ══════════════════════════════════════════════
 function renderDashboard(){
+  const setEl=(id,val,prop='textContent')=>{const e=document.getElementById(id);if(e)e[prop]=val;};
+  const setClass=(id,cls)=>{const e=document.getElementById(id);if(e)e.className=cls;};
   const stocks=S.stocks,divs=S.dividends;
   let tI=0,tC=0,tD=0,yS=0,yN=0;
   stocks.forEach(s=>{
@@ -2469,25 +2471,25 @@ function renderDashboard(){
   });
   const pl=tC-tI,plp=tI?((pl/tI)*100).toFixed(1):0,tR=pl+tD,trp=tI?((tR/tI)*100).toFixed(1):0;
 
-  document.getElementById('k-inv').textContent=fmt(tI);
-  document.getElementById('k-lots').textContent=stocks.reduce((a,s)=>a+s.lots.length,0)+' alım kaydı';
-  document.getElementById('k-cur').textContent=fmt(tC);
-  document.getElementById('k-pl').className='ktrend '+(pl>=0?'up':'down');
-  document.getElementById('k-pl').innerHTML=(pl>=0?'▲ +':'▼ ')+fmt(pl)+` (${pl>=0?'+':''}${plp}%)`;
-  document.getElementById('k-div').textContent=fmt(tD);
-  document.getElementById('k-dcnt').textContent=divs.length+' ödeme kaydı';
-  document.getElementById('k-yld').textContent=yN?'%'+(yS/yN).toFixed(2):'%0.00';
-  document.getElementById('k-ret').textContent=fmt(tR);
-  document.getElementById('k-retpct').className='ktrend '+(tR>=0?'up':'down');
-  document.getElementById('k-retpct').innerHTML=(tR>=0?'▲ +':'▼ ')+(trp>0?'+':'')+trp+'% toplam';
+  setEl('k-inv',fmt(tI));
+  setEl('k-lots',stocks.reduce((a,s)=>a+s.lots.length,0)+' alım kaydı');
+  setEl('k-cur',fmt(tC));
+  setClass('k-pl','ktrend '+(pl>=0?'up':'down'));
+  setEl('k-pl',(pl>=0?'▲ +':'▼ ')+fmt(pl)+` (${pl>=0?'+':''}${plp}%)`,'innerHTML');
+  setEl('k-div',fmt(tD));
+  setEl('k-dcnt',divs.length+' ödeme kaydı');
+  setEl('k-yld',yN?'%'+(yS/yN).toFixed(2):'%0.00');
+  setEl('k-ret',fmt(tR));
+  setClass('k-retpct','ktrend '+(tR>=0?'up':'down'));
+  setEl('k-retpct',(tR>=0?'▲ +':'▼ ')+(trp>0?'+':'')+trp+'% toplam','innerHTML');
   const stockVal=calcStockCurrentValue(), fundVal=calcFundCurrentValue(), totalVal=stockVal+fundVal;
   const splitEl=document.getElementById('portfolio-split');
   if(splitEl){
     if(stockVal>0||fundVal>0){
       splitEl.style.display='flex';
-      document.getElementById('k-stock-val').textContent=fmt(stockVal);
-      document.getElementById('k-fund-val').textContent=fmt(fundVal);
-      document.getElementById('k-total-val').textContent=fmt(totalVal);
+      setEl('k-stock-val',fmt(stockVal));
+      setEl('k-fund-val',fmt(fundVal));
+      setEl('k-total-val',fmt(totalVal));
     }else splitEl.style.display='none';
   }
 
