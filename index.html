@@ -1274,8 +1274,29 @@ function lockApp(){
             <div style="font-size:.75rem;color:var(--muted2);margin-bottom:10px;line-height:1.7">
               Verileriniz kaybolmuş görünüyorsa, tarayıcıda daha önce farklı bir anahtar ile kaydedilmiş olabilir. Aşağıdaki butona tıklayarak eski veriyi kurtarmaya çalışın.
             </div>
-            <button class="btn bg2 sm" onclick="tryRecoverData()">🔍 Eski Veriyi Kurtar</button>
-            <div id="recover-result" style="font-size:.72rem;margin-top:8px;font-family:var(--fm)"></div>
+            <button class="btn bg2 sm" onclick="(function(){
+  var resultEl=document.getElementById('recover-result');
+  var keys=[];
+  try{ for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k)keys.push(k);} }
+  catch(e){ resultEl.innerHTML='<span style=color:red>Hata:'+e.message+'</span>'; return; }
+  if(!keys.length){ resultEl.innerHTML='<span style=color:orange>localStorage boş — eski dosyayı aç, JSON Yedek Al, sonra buraya geri yükle.</span>'; return; }
+  var html='<b>'+keys.length+' kayıt bulundu:</b><br>';
+  keys.forEach(function(k){
+    try{
+      var raw=localStorage.getItem(k)||'';
+      if(raw.length<10) return;
+      var d; try{d=JSON.parse(raw);}catch(e){html+=k+': parse hatası<br>';return;}
+      var s=(d.stocks||[]).length,f=(d.funds||[]).length,dv=(d.dividends||[]).length;
+      html+='<div style="padding:5px 0;border-bottom:1px solid var(--br)">';
+      html+='<span style="font-family:var(--fm);font-size:.72rem;color:var(--muted)">'+k+'</span> ';
+      html+='<span style="color:var(--muted2);font-size:.68rem">'+s+' hisse · '+f+' fon · '+dv+' temettü</span> ';
+      if(s>0||f>0||dv>0) html+='<button class="btn bp sm" onclick="recoverFromKey(\"'+k+'\")">Yükle</button>';
+      html+='</div>';
+    }catch(e){html+=k+': hata<br>';}
+  });
+  resultEl.innerHTML=html;
+})()">🔍 Eski Veriyi Kurtar</button>
+<div id="recover-result" style="font-size:.72rem;margin-top:8px;font-family:var(--fm);line-height:1.8"></div>
           </div>
         </div>
       </div>
@@ -6809,28 +6830,51 @@ function setDashAssetTab(mode, btn){
 // ══════════════════════════════════════════════
 function tryRecoverData(){
   const resultEl = document.getElementById('recover-result');
-  const keys = [];
+  if(!resultEl) return;
+  
+  let keys = [];
   try{
     for(let i=0; i<localStorage.length; i++){
-      keys.push(localStorage.key(i));
+      const k=localStorage.key(i);
+      if(k) keys.push(k);
     }
-  }catch(e){ if(resultEl) resultEl.textContent='localStorage erişim hatası.'; return; }
+  }catch(e){ 
+    resultEl.innerHTML='<span style="color:var(--red)">localStorage erişim hatası: '+e.message+'</span>'; 
+    return; 
+  }
   
-  // Olası anahtar adları
-  const candidates = keys.filter(k=>k && (
-    k.includes('takip') || k.includes('tmtt') || k.includes('stock') || 
-    k.includes('fund') || k.includes('portfolio') || k.includes('yatirim')
-  ));
+  if(keys.length===0){
+    resultEl.innerHTML='<span style="color:var(--gold)">⚠ localStorage boş — veriler bu tarayıcıda hiç kaydedilmemiş olabilir. Eski dosyayı (önceki index.html) aynı anda açık tutup oradan JSON Yedek Al butonuna basın.</span>';
+    return;
+  }
+
+  // Tüm anahtarları dene — filtre olmadan
+  let html = `<div style="margin-bottom:8px">Toplam <strong>${keys.length}</strong> kayıt bulundu:</div>`;
   
-  if(resultEl) resultEl.innerHTML = `Bulunan anahtarlar: <strong>${keys.length}</strong> · Aday: <strong>${candidates.length}</strong><br>${candidates.map(k=>{
+  keys.forEach(k=>{
     try{
-      const d=JSON.parse(localStorage.getItem(k)||'{}');
+      const raw = localStorage.getItem(k)||'';
+      if(!raw || raw.length < 10) return;
+      let d;
+      try{ d=JSON.parse(raw); }catch(e){ 
+        html+=`<div style="color:var(--muted);font-size:.68rem">${k}: JSON parse hatası</div>`;
+        return;
+      }
       const stocks=(d.stocks||[]).length;
       const funds=(d.funds||[]).length;
       const divs=(d.dividends||[]).length;
-      return `<span style="color:var(--ac);cursor:pointer;text-decoration:underline" onclick="recoverFromKey('${k}')">${k}</span>: ${stocks} hisse, ${funds} fon, ${divs} temettü`;
-    }catch(e){return k+': (okunamadı)';}
-  }).join('<br>')||'Uygun anahtar bulunamadı.<br><span style="color:var(--muted)">Tüm anahtarlar: '+keys.slice(0,10).join(', ')+'</span>'}`;
+      const hasData=stocks>0||funds>0||divs>0;
+      html+=`<div style="padding:6px 0;border-bottom:1px solid var(--br)">
+        <span style="color:${hasData?'var(--ac)':'var(--muted)'};font-family:var(--fm);font-size:.72rem">${k}</span>
+        <span style="color:var(--muted2);font-size:.68rem;margin-left:8px">${stocks} hisse · ${funds} fon · ${divs} temettü · ${raw.length} byte</span>
+        ${hasData?`<button class="btn bp sm" style="margin-left:8px" onclick="recoverFromKey('${k}')">Bu veriyi yükle</button>`:''}
+      </div>`;
+    }catch(e){
+      html+=`<div style="color:var(--muted);font-size:.68rem">${k}: hata - ${e.message}</div>`;
+    }
+  });
+  
+  resultEl.innerHTML = html;
 }
 
 function recoverFromKey(key){
