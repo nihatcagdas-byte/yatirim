@@ -1855,13 +1855,36 @@ let divChartMode='monthly',calView='cards';
 // KAYIT — localStorage (otomatik, kalıcı)
 // ══════════════════════════════════════════════
 function load(){
-  try{const d=localStorage.getItem('tmttakip3');if(d)S=JSON.parse(d);}catch(e){}
-  if(!S.funds)S.funds=[];
-  if(!S.fundDistributions)S.fundDistributions=[];
+  try{
+    const d=localStorage.getItem('tmttakip3');
+    if(d){
+      const parsed=JSON.parse(d);
+      // Mevcut veriyi koru, eksik alanları ekle
+      S=Object.assign({stocks:[],dividends:[],notes:[],settings:{},prices:{},funds:[],fundDistributions:[],finance:null,goldFx:[]}, parsed);
+    }
+  }catch(e){ console.warn('Veri yükleme hatası:',e); }
+  // Eksik alanları güvenle ekle (mevcut veriyi silmez)
+  if(!S.funds) S.funds=[];
+  if(!S.fundDistributions) S.fundDistributions=[];
+  if(!S.goldFx) S.goldFx=[];
+  if(!S.finance) S.finance={incomes:[],expenses:[],assets:[],liabilities:[],bes:[],deposits:[],projParams:{inflation:35,portfolioReturn:15,salaryIncrease:20,years:10},monthlySnapshots:[]};
+  if(!S.finance.incomes) S.finance.incomes=[];
+  if(!S.finance.expenses) S.finance.expenses=[];
+  if(!S.finance.assets) S.finance.assets=[];
+  if(!S.finance.liabilities) S.finance.liabilities=[];
+  if(!S.finance.bes) S.finance.bes=[];
+  if(!S.finance.deposits) S.finance.deposits=[];
+  if(!S.finance.projParams) S.finance.projParams={inflation:35,portfolioReturn:15,salaryIncrease:20,years:10};
   loadSettings();
 }
 function save(){
-  localStorage.setItem('tmttakip3',JSON.stringify(S));
+  try{
+    // Kritik alanları kaydetmeden önce koru
+    if(!S.funds) S.funds=[];
+    if(!S.goldFx) S.goldFx=[];
+    if(!S.finance) S.finance={incomes:[],expenses:[],assets:[],liabilities:[],bes:[],deposits:[],projParams:{}};
+    localStorage.setItem('tmttakip3',JSON.stringify(S));
+  }catch(e){ console.error('Kayıt hatası:',e); }
   const e=document.getElementById('last-upd');
   if(e)e.textContent='Son güncelleme: '+new Date().toLocaleString('tr-TR');
 }
@@ -5472,10 +5495,7 @@ function parseImportFundsCSV(text){
 
 // renderAll — renderFunds dahil
 
-// İlk yükleme
-if(!S.funds)S.funds=[];
-if(!S.fundDistributions)S.fundDistributions=[];
-// Finance init runs here (after load) — check is already "if(!S.finance)"
+// İlk yükleme — load() içinde zaten yapıldı
 const _fif=document.getElementById('fund-import-file');
 if(_fif&&!_fif._bound){_fif._bound=true;_fif.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{parseImportFundsCSV(ev.target.result);}catch(err){alert(err.message);}e.target.value='';};r.readAsText(f,'UTF-8');});}
 renderFunds();
@@ -5506,36 +5526,7 @@ function toggleSidebar(){
 // ══════════════════════════════════════════════
 
 // ─── DATA INIT ───
-if(!S.finance) S.finance={
-  incomes:[
-    {id:1,name:'Maaş',amount:0,category:'Maaş',repeat:'monthly',auto:false,note:''},
-    {id:2,name:'Kira Geliri',amount:0,category:'Kira',repeat:'monthly',auto:false,note:''},
-  ],
-  expenses:[
-    {id:1,name:'Kira / Aidat',amount:0,category:'Konut',repeat:'monthly',auto:false,note:''},
-    {id:2,name:'Elektrik / Su / Doğalgaz',amount:0,category:'Faturalar',repeat:'monthly',auto:false,note:''},
-    {id:3,name:'Market',amount:0,category:'Market & Yiyecek',repeat:'monthly',auto:false,note:''},
-    {id:4,name:'İnternet / Telefon',amount:0,category:'Abonelikler',repeat:'monthly',auto:false,note:''},
-    {id:5,name:'Ulaşım',amount:0,category:'Ulaşım',repeat:'monthly',auto:false,note:''},
-  ],
-  assets:[
-    {id:1,name:'Nakit / Banka',amount:0,category:'Nakit',note:''},
-    {id:2,name:'Gayrimenkul',amount:0,category:'Gayrimenkul',note:''},
-    {id:3,name:'Araç',amount:0,category:'Araç',note:''},
-  ],
-  liabilities:[
-    {id:1,name:'Konut Kredisi',amount:0,monthly:0,category:'Konut Kredisi',note:''},
-    {id:2,name:'Araç Kredisi',amount:0,monthly:0,category:'Araç Kredisi',note:''},
-    {id:3,name:'Kredi Kartı Borcu',amount:0,monthly:0,category:'Kredi Kartı',note:''},
-  ],
-  bes:[],
-  projParams:{inflation:35,portfolioReturn:15,salaryIncrease:20,years:10,scenario:'balanced'},
-  monthlySnapshots:[],
-};
-if(!S.finance.bes) S.finance.bes=[];
-if(!S.finance.deposits) S.finance.deposits=[];
-if(!S.finance.projParams) S.finance.projParams={inflation:35,portfolioReturn:15,salaryIncrease:20,years:10,scenario:'balanced'};
-if(!S.finance.monthlySnapshots) S.finance.monthlySnapshots=[];
+// finance init load() içinde yapılıyor
 
 const EXPENSE_CATS=['Konut','Faturalar','Market & Yiyecek','Ulaşım','Abonelikler','Sağlık','Eğitim','Eğlence','Oyun & Dijital','Giyim','Diğer'];
 const INCOME_CATS=['Maaş','Kira','Temettü (Oto)','Faiz','Fon Dağıtımı (Oto)','BES Devlet Katkısı (Oto)','Serbest Meslek','Diğer'];
@@ -6466,7 +6457,7 @@ function renderDeposits(){
 // ══════════════════════════════════════════════
 // ALTIN / DÖVİZ / EUROBOND SİSTEMİ
 // ══════════════════════════════════════════════
-if(!S.goldFx) S.goldFx = [];
+// goldFx init load() içinde yapılıyor
 let _gfxCounter = Date.now() + 200;
 
 const GFX_LABELS = {
