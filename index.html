@@ -5214,16 +5214,28 @@ const LOCK_KEY='tt_lock_hash';
 const LOCK_TS_KEY='tt_lock_ts';
 const LOCK_TIMEOUT=15*60*1000; // 15 dakika
 
-async function hashPwd(pwd){
-  const enc=new TextEncoder().encode(pwd+'YatirimTakip_salt_2025');
-  const buf=await crypto.subtle.digest('SHA-256',enc);
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+function hashPwd(pwd){
+  // Basit ama yeterli hash — file:// protokolünde de çalışır
+  const str=pwd+'YatirimTakip_salt_2025';
+  let h=0;
+  for(let i=0;i<str.length;i++){
+    const c=str.charCodeAt(i);
+    h=((h<<5)-h)+c;
+    h=h&h;
+  }
+  // İkinci geçiş — daha güçlü karma
+  let h2=5381;
+  for(let i=0;i<str.length;i++){
+    h2=((h2<<5)+h2)+str.charCodeAt(i);
+    h2=h2&h2;
+  }
+  return (Math.abs(h).toString(16).padStart(8,'0'))+(Math.abs(h2).toString(16).padStart(8,'0'))+str.length.toString(16);
 }
 
-async function setupLock(){
+function setupLock(){
   const pwd=document.getElementById('lock-pwd').value;
   if(pwd.length<8){document.getElementById('lock-err').textContent='Şifre 8 karakter olmalıdır.';return;}
-  const h=await hashPwd(pwd);
+  const h=hashPwd(pwd);
   localStorage.setItem(LOCK_KEY,h);
   localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
   document.getElementById('lock-screen').style.display='none';
@@ -5231,15 +5243,15 @@ async function setupLock(){
   document.getElementById('lock-err').textContent='';
 }
 
-async function unlockApp(){
+function unlockApp(){
   const pwd=document.getElementById('lock-pwd').value;
   const stored=localStorage.getItem(LOCK_KEY);
   if(!stored){
-    await setupLock();
+    setupLock();
     return;
   }
   if(!pwd){document.getElementById('lock-err').textContent='Şifre giriniz.';return;}
-  const h=await hashPwd(pwd);
+  const h=hashPwd(pwd);
   if(h===stored){
     localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
     document.getElementById('lock-screen').style.display='none';
@@ -5285,24 +5297,28 @@ setInterval(()=>{
 
 // Init lock check
 (function initLockCheck(){
-  const stored=localStorage.getItem(LOCK_KEY);
-  const ts=parseInt(localStorage.getItem(LOCK_TS_KEY)||'0');
-  if(!stored){
-    // First use — show setup prompt
-    document.getElementById('lock-sub-text').textContent='İlk kullanım: 8 karakterli şifre belirleyin';
-    document.getElementById('lock-setup-hint').style.display='block';
-    document.getElementById('lock-screen').style.display='flex';
-    document.getElementById('app-layout').style.display='none';
-  } else if(Date.now()-ts<LOCK_TIMEOUT){
-    // Recent session
+  try{
+    const stored=localStorage.getItem(LOCK_KEY);
+    const ts=parseInt(localStorage.getItem(LOCK_TS_KEY)||'0');
+    if(!stored){
+      document.getElementById('lock-sub-text').textContent='İlk kullanım: 8 karakterli şifre belirleyin';
+      document.getElementById('lock-setup-hint').style.display='block';
+      document.getElementById('lock-screen').style.display='flex';
+      document.getElementById('app-layout').style.display='none';
+    } else if(Date.now()-ts<LOCK_TIMEOUT){
+      document.getElementById('lock-screen').style.display='none';
+      document.getElementById('app-layout').style.display='flex';
+      localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
+    } else {
+      document.getElementById('lock-screen').style.display='flex';
+      document.getElementById('app-layout').style.display='none';
+    }
+  }catch(e){
+    // localStorage blocked — bypass lock
     document.getElementById('lock-screen').style.display='none';
     document.getElementById('app-layout').style.display='flex';
-    localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
-  } else {
-    document.getElementById('lock-screen').style.display='flex';
-    document.getElementById('app-layout').style.display='none';
   }
-  document.getElementById('lock-pwd').focus();
+  try{document.getElementById('lock-pwd').focus();}catch(e){}
 })();
 
 // ══════════════════════════════════════════════
