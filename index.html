@@ -621,40 +621,46 @@ function lockApp(){
     </div>
 
     <nav class="sb-nav">
-      <div class="sb-section">Ana</div>
-      <button class="sb-item active" data-page="dashboard" data-tip-sb="Portföy" onclick="showPage('dashboard',this)">
-        <span class="sb-item-icon">📊</span><span class="sb-item-label">Portföy</span>
+      <div class="sb-section">Genel Bakış</div>
+      <button class="sb-item active" data-page="dashboard" data-tip-sb="Ana Sayfa" onclick="showPage('dashboard',this)">
+        <span class="sb-item-icon">🏠</span><span class="sb-item-label">Ana Sayfa</span>
       </button>
       <button class="sb-item" data-page="calendar" data-tip-sb="Takvim" onclick="showPage('calendar',this)">
         <span class="sb-item-icon">📅</span><span class="sb-item-label">Takvim</span>
       </button>
 
-      <div class="sb-section">Yatırımlar</div>
+      <div class="sb-section">Varlıklar</div>
       <button class="sb-item" data-page="stocks" data-tip-sb="Hisseler" onclick="showPage('stocks',this)">
-        <span class="sb-item-icon">🏦</span><span class="sb-item-label">Hisseler</span>
+        <span class="sb-item-icon">📈</span><span class="sb-item-label">Hisseler</span>
       </button>
       <button class="sb-item" data-page="funds" data-tip-sb="Fonlar" onclick="showPage('funds',this)">
         <span class="sb-item-icon">📦</span><span class="sb-item-label">Fonlar</span>
       </button>
-      <button class="sb-item" data-page="insights" data-tip-sb="Keşfet" onclick="showPage('insights',this)">
-        <span class="sb-item-icon">💡</span><span class="sb-item-label">Keşfet</span>
+      <button class="sb-item" data-page="goldfx" data-tip-sb="Altın & Döviz" onclick="showPage('goldfx',this)">
+        <span class="sb-item-icon">🥇</span><span class="sb-item-label">Altın & Döviz</span>
+      </button>
+      <button class="sb-item" data-page="deposit" data-tip-sb="Mevduat" onclick="showPage('deposit',this)">
+        <span class="sb-item-icon">🏦</span><span class="sb-item-label">Mevduat</span>
+      </button>
+      <button class="sb-item" data-page="bes" data-tip-sb="BES" onclick="showPage('bes',this)">
+        <span class="sb-item-icon">🛡️</span><span class="sb-item-label">BES</span>
       </button>
 
       <div class="sb-section">Finans</div>
-      <button class="sb-item" data-page="wealth" data-tip-sb="Servet" onclick="showPage('wealth',this)">
-        <span class="sb-item-icon">⚖️</span><span class="sb-item-label">Servet</span>
-      </button>
       <button class="sb-item" data-page="cashflow" data-tip-sb="Gelir/Gider" onclick="showPage('cashflow',this)">
         <span class="sb-item-icon">💸</span><span class="sb-item-label">Gelir / Gider</span>
+      </button>
+      <button class="sb-item" data-page="wealth" data-tip-sb="Bilanço" onclick="showPage('wealth',this)">
+        <span class="sb-item-icon">⚖️</span><span class="sb-item-label">Bilanço</span>
       </button>
       <button class="sb-item" data-page="projection" data-tip-sb="Projeksiyon" onclick="showPage('projection',this)">
         <span class="sb-item-icon">🔮</span><span class="sb-item-label">Projeksiyon</span>
       </button>
-      <button class="sb-item" data-page="bes" data-tip-sb="BES" onclick="showPage('bes',this)">
-        <span class="sb-item-icon">🏦</span><span class="sb-item-label">BES</span>
-      </button>
 
       <div class="sb-section">Araçlar</div>
+      <button class="sb-item" data-page="insights" data-tip-sb="Keşfet" onclick="showPage('insights',this)">
+        <span class="sb-item-icon">💡</span><span class="sb-item-label">Keşfet</span>
+      </button>
       <button class="sb-item" data-page="analysis" data-tip-sb="Analiz" onclick="showPage('analysis',this)">
         <span class="sb-item-icon">🔬</span><span class="sb-item-label">Analiz</span>
       </button>
@@ -699,96 +705,89 @@ function lockApp(){
 </div>
 
 <!-- ═══════════ DASHBOARD ═══════════ -->
+<!-- ═══════════ ANA SAYFA ═══════════ -->
 <div id="p-dashboard" class="page active">
   <div class="wrap">
+
+    <!-- BAŞLIK -->
     <div class="pg-header">
       <div>
-        <div class="pg-title">Portföy <span>Özeti</span></div>
+        <div class="pg-title">Finansal <span>Tablom</span></div>
         <div class="pg-sub" id="last-upd">Henüz veri yok</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn bg2" onclick="fetchAllPrices()">🔄 Otomatik Güncelle</button>
-        <button class="btn bg2" onclick="openManualPriceModal()">✏️ Manuel Gir</button>
-        <button class="btn bg2" onclick="openDivModal()">+ Temettü</button>
+        <button class="btn bg2" onclick="fetchAllPrices()">🔄 Fiyat Güncelle</button>
+        <button class="btn bg2" onclick="fetchRates()">💱 Kur Güncelle</button>
         <button class="btn bp" onclick="openAddModal()">+ Hisse Ekle</button>
       </div>
     </div>
 
-    <!-- KPI -->
-    <div class="kgrid" id="kgrid">
-      <div class="kcard"><span class="kcard-icon">💼</span><div class="klabel">Toplam Yatırım</div><div class="kval mo" id="k-inv">₺0</div><div class="ksub" id="k-lots">0 alım</div></div>
-      <div class="kcard"><span class="kcard-icon">📈</span><div class="klabel">Güncel Değer</div><div class="kval mo" id="k-cur">₺0</div><div class="ktrend neu" id="k-pl">—</div></div>
-      <div class="kcard"><span class="kcard-icon">💰</span><div class="klabel">Toplam Temettü</div><div class="kval mo pos" id="k-div">₺0</div><div class="ksub" id="k-dcnt">0 ödeme</div></div>
-      <div class="kcard"><span class="kcard-icon">📊</span><div class="klabel">Ort. Temettü Verimi</div><div class="kval mo" id="k-yld">%0.00</div><div class="ksub" data-tip="Beklenen yıllık temettü / ort. maliyet">Yıllık brüt tahmini</div></div>
-      <div class="kcard"><span class="kcard-icon">🏆</span><div class="klabel">Toplam Getiri</div><div class="kval mo" id="k-ret">₺0</div><div class="ktrend neu" id="k-retpct">K/Z + Temettü</div></div>
-    </div>
-
-    <!-- HİSSE / FON / TOPLAM -->
-    <div class="stat-row" id="portfolio-split" style="margin-bottom:20px;display:none">
-      <div class="stat-chip"><div class="stat-chip-lbl">Hisse Güncel Değer</div><div class="stat-chip-val mo" id="k-stock-val">₺0</div></div>
-      <div class="stat-chip"><div class="stat-chip-lbl">Fon Güncel Değer</div><div class="stat-chip-val mo" id="k-fund-val">₺0</div></div>
-      <div class="stat-chip"><div class="stat-chip-lbl">Toplam Portföy</div><div class="stat-chip-val mo pos" id="k-total-val">₺0</div></div>
-    </div>
-    <!-- FİNANS ÖZET WİDGET -->
-    <div id="dash-net-widget" style="margin-bottom:20px"></div>
-
-    <!-- DÖVİZ SATIRI -->
-    <div id="currency-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-      <div class="cb" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
-        <div>
-          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:4px">Portföy (USD)</div>
-          <div class="mo" style="font-weight:800;font-size:1.1rem" id="k-usd">$—</div>
-        </div>
-        <div style="font-size:1.6rem;opacity:.3">🇺🇸</div>
+    <!-- ÜSTTE 5 ANA KPI -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:13px;margin-bottom:20px" id="dash-top-kpi">
+      <div class="kcard">
+        <span class="kcard-icon">🏛️</span>
+        <div class="klabel">Net Değer</div>
+        <div class="kval mo" id="dk-networth">₺0</div>
+        <div class="ktrend neu" id="dk-networth-sub">Varlık − Borç</div>
       </div>
-      <div class="cb" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
-        <div>
-          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:4px">Portföy (EUR)</div>
-          <div class="mo" style="font-weight:800;font-size:1.1rem" id="k-eur">€—</div>
-        </div>
-        <div style="font-size:1.6rem;opacity:.3">🇪🇺</div>
+      <div class="kcard">
+        <span class="kcard-icon">💼</span>
+        <div class="klabel">Toplam Varlık</div>
+        <div class="kval mo" id="dk-assets">₺0</div>
+        <div class="ksub" id="dk-assets-sub">tüm varlıklar</div>
       </div>
-      <div class="cb" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
-        <div>
-          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:4px">Dolar Kuru</div>
-          <div style="display:flex;align-items:baseline;gap:6px">
-            <div class="mo" style="font-weight:800;font-size:1.1rem" id="k-usdrate">₺—</div>
-            <div style="font-size:.65rem;font-family:var(--fm)" id="k-usdchange"></div>
-          </div>
-        </div>
-        <button class="btn bg2 sm" onclick="fetchRates()" style="font-size:.65rem">🔄</button>
+      <div class="kcard">
+        <span class="kcard-icon">💰</span>
+        <div class="klabel">Aylık Gelir</div>
+        <div class="kval mo pos" id="dk-income">₺0</div>
+        <div class="ksub" id="dk-income-sub">tüm gelir kalemleri</div>
       </div>
-      <div class="cb" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
-        <div>
-          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:4px">Euro Kuru</div>
-          <div style="display:flex;align-items:baseline;gap:6px">
-            <div class="mo" style="font-weight:800;font-size:1.1rem" id="k-eurrate">₺—</div>
-            <div style="font-size:.65rem;font-family:var(--fm)" id="k-eurchange"></div>
-          </div>
-        </div>
-        <div style="font-size:.62rem;color:var(--muted);font-family:var(--fm)" id="k-ratetime"></div>
+      <div class="kcard">
+        <span class="kcard-icon">📊</span>
+        <div class="klabel">Aylık Net Akış</div>
+        <div class="kval mo" id="dk-netflow">₺0</div>
+        <div class="ktrend neu" id="dk-netflow-sub">gelir − gider</div>
+      </div>
+      <div class="kcard">
+        <span class="kcard-icon">❤️</span>
+        <div class="klabel">Fin. Sağlık</div>
+        <div class="kval mo" id="dk-health">—</div>
+        <div class="ksub" id="dk-health-sub">0-100 skor</div>
       </div>
     </div>
 
-    <!-- MAIN GRID -->
-    <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px">
-      <!-- LEFT: Tablo + Grafik -->
-      <div>
-        <div class="sh">
-          <div class="st">Portföy <span>Tablosu</span></div>
-          <button class="btn bg2 sm" onclick="exportCSV()">⬇ CSV</button>
-        </div>
-        <div class="tw">
-          <table>
-            <thead><tr id="pthead"></tr></thead>
-            <tbody id="ptbody"><tr><td colspan="9"><div class="empty"><div class="ei">📭</div><div class="et">Henüz hisse yok.<br>Sağ üstten ekleyebilirsiniz.</div></div></td></tr></tbody>
-          </table>
-        </div>
+    <!-- ANA GRID: Sol geniş + Sağ dar -->
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:16px">
 
-        <!-- TEMETTİ GEÇMİŞİ -->
+      <!-- SOL KOLON -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- VARLIK DAĞILIMI -->
         <div class="cb">
           <div class="ch">
-            <div class="ct">Temettü <span>Geçmişi</span></div>
+            <div class="ct">Varlık <span>Dağılımı</span></div>
+            <div style="display:flex;gap:6px" id="dash-asset-tabs">
+              <button class="ctab active" onclick="setDashAssetTab('value',this)">Değer</button>
+              <button class="ctab" onclick="setDashAssetTab('pct',this)">Yüzde</button>
+            </div>
+          </div>
+          <!-- Varlık bar chart -->
+          <div id="dash-asset-bars" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+
+        <!-- GELİR KAYNAKLARI -->
+        <div class="cb">
+          <div class="ch">
+            <div class="ct">Gelir <span>Kaynakları</span></div>
+            <div class="ksub" id="dash-income-total" style="font-family:var(--fm);font-weight:700"></div>
+          </div>
+          <div id="dash-income-rows" style="display:flex;flex-direction:column;gap:0"></div>
+        </div>
+
+        <!-- PORTFÖY PERFORMANS -->
+        <div class="cb">
+          <div class="ch">
+            <div class="ct">Portföy <span>Performansı</span></div>
             <div class="ctabs">
               <button class="ctab active" onclick="setDCM('monthly',this)">Aylık</button>
               <button class="ctab" onclick="setDCM('yearly',this)">Yıllık</button>
@@ -796,32 +795,69 @@ function lockApp(){
           </div>
           <canvas id="divChart" height="100"></canvas>
         </div>
+
       </div>
 
-      <!-- RIGHT: Donut + Allocation + Upcoming -->
+      <!-- SAĞ KOLON -->
       <div style="display:flex;flex-direction:column;gap:16px">
-        <!-- Donut Dağılım -->
+
+        <!-- DONUT - Varlık türü dağılımı -->
         <div class="cb" style="padding:18px">
-          <div class="ct" style="margin-bottom:14px">Portföy <span>Dağılımı</span></div>
+          <div class="ct" style="margin-bottom:14px">Varlık <span>Türleri</span></div>
           <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
             <div class="donut-wrap"><canvas id="donutChart"></canvas>
-              <div class="donut-center"><div class="donut-val mo" id="donut-val">0</div><div class="donut-lbl" id="donut-lbl">Portföy</div></div>
+              <div class="donut-center">
+                <div class="donut-val mo" id="donut-val">0</div>
+                <div class="donut-lbl" id="donut-lbl">Toplam</div>
+              </div>
             </div>
-            <div class="donut-legend" id="donut-legend" style="flex:1;min-width:100px">
-              <div style="color:var(--muted);font-size:.75rem">Hisse ekleyin</div>
-            </div>
+            <div class="donut-legend" id="donut-legend" style="flex:1;min-width:80px"></div>
           </div>
         </div>
 
-        <!-- Yaklaşan -->
+        <!-- DÖVİZ KURLARİ -->
+        <div class="cb" style="padding:16px">
+          <div class="ch" style="margin-bottom:12px">
+            <div class="ct">Döviz <span>Kurları</span></div>
+            <button class="btn bg2 sm" onclick="fetchRates()">🔄</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--br)">
+              <span style="font-size:.78rem;font-weight:700">🇺🇸 USD/TRY</span>
+              <div style="text-align:right">
+                <div class="mo" style="font-weight:800;font-size:.95rem" id="k-usdrate">₺—</div>
+                <div style="font-size:.65rem;font-family:var(--fm)" id="k-usdchange"></div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--br)">
+              <span style="font-size:.78rem;font-weight:700">🇪🇺 EUR/TRY</span>
+              <div style="text-align:right">
+                <div class="mo" style="font-weight:800;font-size:.95rem" id="k-eurrate">₺—</div>
+                <div style="font-size:.65rem;font-family:var(--fm)" id="k-eurchange"></div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+              <span style="font-size:.75rem;color:var(--muted)">Portföy ($)</span>
+              <span class="mo" style="font-weight:700;font-size:.85rem" id="k-usd">$—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+              <span style="font-size:.75rem;color:var(--muted)">Portföy (€)</span>
+              <span class="mo" style="font-weight:700;font-size:.85rem" id="k-eur">€—</span>
+            </div>
+            <div style="font-size:.62rem;color:var(--muted);font-family:var(--fm);margin-top:4px" id="k-ratetime"></div>
+          </div>
+        </div>
+
+        <!-- YAKLASAN ÖDEMELER -->
         <div class="cb" style="padding:18px;flex:1">
           <div class="ct" style="margin-bottom:14px">Yaklaşan <span>Ödemeler</span></div>
           <div id="upcoming"><div style="color:var(--muted);font-size:.78rem">Yaklaşan ödeme yok</div></div>
         </div>
+
       </div>
     </div>
 
-    <!-- HEATMAP -->
+    <!-- ALT: Isı haritası -->
     <div class="cb">
       <div class="ch">
         <div class="ct">Temettü <span>Isı Haritası</span></div>
@@ -840,6 +876,7 @@ function lockApp(){
         <span style="font-size:.65rem;color:var(--muted);font-family:var(--fm)">Çok</span>
       </div>
     </div>
+
   </div>
 </div>
 
@@ -1252,6 +1289,78 @@ function lockApp(){
   </div>
 </div>
 
+<!-- ═══════════ ALTIN & DÖVİZ & SABİT GETİRİLİ ═══════════ -->
+<div id="p-goldfx" class="page">
+  <div class="wrap">
+    <div class="pg-header">
+      <div>
+        <div class="pg-title">Altın, Döviz & <span>Sabit Getirili</span></div>
+        <div class="pg-sub">Altın, gümüş, döviz, eurobond ve tahvil takibi</div>
+      </div>
+      <button class="btn bp" onclick="openAddGoldFx()">+ Varlık Ekle</button>
+    </div>
+
+    <!-- KPI -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      <div class="kcard"><span class="kcard-icon">🥇</span><div class="klabel">Altın / Gümüş</div><div class="kval mo" id="gfk-gold">₺0</div></div>
+      <div class="kcard"><span class="kcard-icon">💵</span><div class="klabel">Döviz</div><div class="kval mo" id="gfk-forex">₺0</div></div>
+      <div class="kcard"><span class="kcard-icon">📜</span><div class="klabel">Eurobond / Tahvil</div><div class="kval mo" id="gfk-bond">₺0</div></div>
+      <div class="kcard"><span class="kcard-icon">💰</span><div class="klabel">Aylık Kupon Geliri</div><div class="kval mo pos" id="gfk-coupon">₺0</div></div>
+    </div>
+
+    <!-- TABLOLAR -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <!-- ALTIN & GÜMÜŞ -->
+      <div class="cb">
+        <div class="ch">
+          <div class="ct">🥇 Altın & <span>Gümüş</span></div>
+          <button class="btn bp sm" onclick="openAddGoldFx('gold')">+ Ekle</button>
+        </div>
+        <div id="gfx-gold-list"><div class="empty" style="padding:20px 0"><div class="et">Altın/gümüş varlığı yok</div></div></div>
+      </div>
+
+      <!-- DÖVİZ -->
+      <div class="cb">
+        <div class="ch">
+          <div class="ct">💵 Döviz <span>Varlıkları</span></div>
+          <button class="btn bp sm" onclick="openAddGoldFx('forex')">+ Ekle</button>
+        </div>
+        <div id="gfx-forex-list"><div class="empty" style="padding:20px 0"><div class="et">Döviz varlığı yok</div></div></div>
+      </div>
+
+      <!-- EUROBOND / TAHVİL -->
+      <div class="cb">
+        <div class="ch">
+          <div class="ct">📜 Eurobond & <span>Tahvil</span></div>
+          <button class="btn bp sm" onclick="openAddGoldFx('bond')">+ Ekle</button>
+        </div>
+        <div id="gfx-bond-list"><div class="empty" style="padding:20px 0"><div class="et">Eurobond/tahvil yok</div></div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MEVDUAT STANDALONE PAGE -->
+<div id="p-deposit" class="page">
+  <div class="wrap">
+    <div class="pg-header">
+      <div>
+        <div class="pg-title">Mevduat <span>Hesapları</span></div>
+        <div class="pg-sub">Vadeli mevduat takibi ve faiz hesaplama</div>
+      </div>
+      <button class="btn bp" onclick="openAddDeposit()">+ Mevduat Ekle</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+      <div class="kcard"><span class="kcard-icon">🏦</span><div class="klabel">Toplam Anapara</div><div class="kval mo" id="dep2-principal">₺0</div></div>
+      <div class="kcard"><span class="kcard-icon">💚</span><div class="klabel">Aylık Net Faiz</div><div class="kval mo pos" id="dep2-monthly">₺0</div></div>
+      <div class="kcard"><span class="kcard-icon">📅</span><div class="klabel">Yıllık Net Faiz</div><div class="kval mo pos" id="dep2-annual">₺0</div></div>
+    </div>
+    <div id="dep2-list"><div class="empty"><div class="ei">🏦</div><div class="et">Henüz mevduat eklenmedi.</div></div></div>
+  </div>
+</div>
+
 <!-- ═══════════ SERVET / FİNANS (unified) ═══════════ -->
 <div id="p-wealth" class="page">
   <div class="wrap">
@@ -1430,6 +1539,22 @@ function lockApp(){
     <div class="cb">
       <div class="ch"><div class="ct">Gider <span>Kategori Dağılımı</span></div></div>
       <div style="position:relative;height:220px"><canvas id="cf2-pie"></canvas></div>
+    </div>
+
+    <!-- MEVDUAT BÖLÜMÜ -->
+    <div class="cb" style="margin-top:16px">
+      <div class="ch">
+        <div class="ct">🏦 Mevduat <span>Hesapları</span></div>
+        <button class="btn bp sm" onclick="openAddDeposit()">+ Mevduat Ekle</button>
+      </div>
+      <div id="deposit-kpi-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+        <div class="kcard"><div class="klabel">Toplam Anapara</div><div class="kval mo" id="dep-total-principal">₺0</div></div>
+        <div class="kcard"><div class="klabel">Aylık Faiz Geliri</div><div class="kval mo pos" id="dep-total-monthly">₺0</div></div>
+        <div class="kcard"><div class="klabel">Yıllık Faiz Geliri</div><div class="kval mo pos" id="dep-total-annual">₺0</div></div>
+      </div>
+      <div id="deposit-list">
+        <div class="empty" style="padding:24px 0"><div class="et">Henüz mevduat eklenmedi.</div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1870,11 +1995,13 @@ function showPage(id,btn){
   if(pg) pg.classList.add('active');
   const sbBtn=btn||document.querySelector(`.sb-item[data-page="${id}"]`);
   if(sbBtn) sbBtn.classList.add('active');
-  // Render the right page
-  if(id==='cashflow') setTimeout(renderCashflow2, 50);
-  else if(id==='wealth') setTimeout(renderWealth2, 50);
-  else if(id==='projection') setTimeout(renderProjection2, 50);
-  else if(id==='bes') setTimeout(renderBES2, 50);
+  if(id==='dashboard') setTimeout(()=>{renderAll();renderDashboardNew();},50);
+  else if(id==='cashflow') setTimeout(renderCashflow2,50);
+  else if(id==='wealth') setTimeout(renderWealth2,50);
+  else if(id==='projection') setTimeout(renderProjection2,50);
+  else if(id==='bes') setTimeout(renderBES2,50);
+  else if(id==='goldfx') setTimeout(renderGoldFx,50);
+  else if(id==='deposit') setTimeout(renderDeposit2,50);
   else renderAll();
   if(id==='settings') setTimeout(loadApiKey,50);
 }
@@ -2074,13 +2201,16 @@ try{
   const activePage=document.querySelector('.page.active');
   if(activePage){
     const pid=activePage.id;
-    if(pid==='p-cashflow'&&typeof renderCashflow2==='function') renderCashflow2();
+    if(pid==='p-dashboard'&&typeof renderDashboardNew==='function') renderDashboardNew();
+    else if(pid==='p-cashflow'&&typeof renderCashflow2==='function') renderCashflow2();
     else if(pid==='p-wealth'&&typeof renderWealth2==='function') renderWealth2();
     else if(pid==='p-projection'&&typeof renderProjection2==='function') renderProjection2();
     else if(pid==='p-bes'&&typeof renderBES2==='function') renderBES2();
+    else if(pid==='p-goldfx'&&typeof renderGoldFx==='function') renderGoldFx();
+    else if(pid==='p-deposit'&&typeof renderDeposit2==='function') renderDeposit2();
   }
 }catch(e){}
-try{if(typeof renderDashboardNetWidget==='function')renderDashboardNetWidget();}catch(e){}
+try{if(typeof renderDashboardNew==='function')renderDashboardNew();}catch(e){}
 }
 function renderDashboardNetWidget(){
   const el=document.getElementById('dash-net-widget');
@@ -5403,6 +5533,7 @@ if(!S.finance) S.finance={
   monthlySnapshots:[],
 };
 if(!S.finance.bes) S.finance.bes=[];
+if(!S.finance.deposits) S.finance.deposits=[];
 if(!S.finance.projParams) S.finance.projParams={inflation:35,portfolioReturn:15,salaryIncrease:20,years:10,scenario:'balanced'};
 if(!S.finance.monthlySnapshots) S.finance.monthlySnapshots=[];
 
@@ -5436,6 +5567,11 @@ function getAutoIncomes(){
   // BES devlet katkısı
   const besTotal=(S.finance.bes||[]).reduce((a,b)=>a+((b.monthlyContrib||0)*0.25),0);
   if(besTotal>0) result.push({name:'BES Devlet Katkısı',amount:besTotal,category:'BES Devlet Katkısı (Oto)',auto:true,note:'%25 devlet katkısı'});
+  // Mevduat faiz gelirleri
+  if(typeof getDepositAutoIncomes==='function') result.push(...getDepositAutoIncomes());
+  // Eurobond / tahvil kupon gelirleri
+  const bondIncome=typeof getBondMonthlyIncome==='function'?getBondMonthlyIncome():0;
+  if(bondIncome>0) result.push({name:'Eurobond/Tahvil Kuponu',amount:bondIncome,category:'Faiz',auto:true,note:'Aylık kupon geliri'});
   return result;
 }
 
@@ -5469,10 +5605,12 @@ function getPortfolioAssetValue(){
   return stocks+funds+gold+forex;
 }
 function getTotalAssets(){
-  const manual=(S.finance.assets||[]).reduce((a,x)=>a+x.amount,0);
+  const manual=(S.finance?.assets||[]).reduce((a,x)=>a+x.amount,0);
   const portfolio=getPortfolioAssetValue();
-  const bes=(S.finance.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
-  return manual+portfolio+bes;
+  const bes=(S.finance?.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
+  const deposits=typeof getDepositTotalAsset==='function'?getDepositTotalAsset():0;
+  const goldFx=(S.goldFx||[]).reduce((a,x)=>a+(x.totalVal||0),0);
+  return manual+portfolio+bes+deposits+goldFx;
 }
 function getTotalLiabilities(){
   return (S.finance.liabilities||[]).reduce((a,x)=>a+x.amount,0);
@@ -5975,6 +6113,7 @@ function renderCashflow2(){
     if(window._cf2PieChart){window._cf2PieChart.destroy();window._cf2PieChart=null;}
     if(expVals.length) window._cf2PieChart=new Chart(canvas,{type:'doughnut',data:{labels:expLabels,datasets:[{data:expVals,backgroundColor:expColors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:tc().tick,font:{size:10},boxWidth:10}}}}});
   }
+  if(typeof renderDeposits==='function') renderDeposits();
 }
 
 function renderWealth2(){
@@ -6168,7 +6307,607 @@ function delBES2(id){
   save();renderBES2();
 }
 
+
+
+// ══════════════════════════════════════════════
+// MEVDUAT SİSTEMİ
+// ══════════════════════════════════════════════
+let _depCounter = Date.now() + 100;
+
+function calcDepMonthlyNet(principal, rate, tax){
+  const gross = (principal * rate / 100) / 12;
+  const net = gross * (1 - tax / 100);
+  return {gross, net, annual: net * 12};
+}
+
+function calcDepositInterest(){
+  const principal = parseFloat(document.getElementById('dep-principal')?.value) || 0;
+  const rate = parseFloat(document.getElementById('dep-rate')?.value) || 0;
+  const tax = parseFloat(document.getElementById('dep-tax')?.value) || 0;
+  const prev = document.getElementById('dep-preview');
+  if(!prev) return;
+  if(!principal || !rate){ prev.style.display='none'; return; }
+  const {gross, net, annual} = calcDepMonthlyNet(principal, rate, tax);
+  prev.style.display = 'block';
+  document.getElementById('dep-prev-monthly').textContent = fmt(gross);
+  document.getElementById('dep-prev-net').textContent = fmt(net);
+  document.getElementById('dep-prev-annual').textContent = fmt(annual);
+}
+
+function openAddDeposit(){
+  document.getElementById('dep-modal-title').textContent = '🏦 Mevduat Hesabı Ekle';
+  document.getElementById('dep-item-id').value = '';
+  ['dep-bank','dep-principal','dep-rate','dep-note'].forEach(id=>{
+    const e=document.getElementById(id); if(e) e.value='';
+  });
+  document.getElementById('dep-maturity').value = '';
+  document.getElementById('dep-type').value = 'simple';
+  document.getElementById('dep-tax').value = '5';
+  document.getElementById('dep-preview').style.display = 'none';
+  openModal('m-deposit');
+}
+
+function openEditDeposit(id){
+  const d = (S.finance.deposits||[]).find(x=>x.id===id);
+  if(!d) return;
+  document.getElementById('dep-modal-title').textContent = '🏦 Mevduat Düzenle';
+  document.getElementById('dep-item-id').value = id;
+  document.getElementById('dep-bank').value = d.bank||'';
+  document.getElementById('dep-principal').value = d.principal||'';
+  document.getElementById('dep-rate').value = d.rate||'';
+  document.getElementById('dep-maturity').value = d.maturity||'';
+  document.getElementById('dep-type').value = d.type||'simple';
+  document.getElementById('dep-tax').value = d.tax||'5';
+  document.getElementById('dep-note').value = d.note||'';
+  calcDepositInterest();
+  openModal('m-deposit');
+}
+
+function saveDeposit(){
+  const id = parseInt(document.getElementById('dep-item-id').value)||0;
+  const bank = document.getElementById('dep-bank').value.trim();
+  const principal = parseFloat(document.getElementById('dep-principal').value)||0;
+  const rate = parseFloat(document.getElementById('dep-rate').value)||0;
+  const maturity = document.getElementById('dep-maturity').value;
+  const type = document.getElementById('dep-type').value;
+  const tax = parseFloat(document.getElementById('dep-tax').value)||0;
+  const note = document.getElementById('dep-note').value.trim();
+  if(!bank || !principal || !rate){ alert('Banka adı, anapara ve faiz oranı zorunludur.'); return; }
+  if(!S.finance.deposits) S.finance.deposits=[];
+  const {gross, net, annual} = calcDepMonthlyNet(principal, rate, tax);
+  const item = {id: id||++_depCounter, bank, principal, rate, maturity, type, tax, note, monthlyGross: gross, monthlyNet: net, annualNet: annual};
+  if(id){
+    const idx = S.finance.deposits.findIndex(x=>x.id===id);
+    if(idx>=0) S.finance.deposits[idx] = item;
+  } else {
+    S.finance.deposits.push(item);
+  }
+  save();
+  closeModal('m-deposit');
+  renderDeposits();
+  renderCashflow2();
+}
+
+function delDeposit(id){
+  if(!confirm('Mevduat hesabı silinsin mi?')) return;
+  S.finance.deposits = (S.finance.deposits||[]).filter(x=>x.id!==id);
+  save();
+  renderDeposits();
+  renderCashflow2();
+}
+
+function getDepositAutoIncomes(){
+  return (S.finance.deposits||[]).map(d=>({
+    name: d.bank + ' Faizi',
+    amount: d.monthlyNet||0,
+    category: 'Faiz',
+    auto: true,
+    note: 'Aylık net faiz · %'+d.rate+' yıllık'
+  })).filter(d=>d.amount>0);
+}
+
+function getDepositTotalAsset(){
+  return (S.finance.deposits||[]).reduce((a,d)=>a+d.principal, 0);
+}
+
+function renderDeposits(){
+  const deps = S.finance.deposits||[];
+  const totalPrincipal = deps.reduce((a,d)=>a+d.principal,0);
+  const totalMonthly = deps.reduce((a,d)=>a+(d.monthlyNet||0),0);
+  const totalAnnual = deps.reduce((a,d)=>a+(d.annualNet||0),0);
+
+  const tp=document.getElementById('dep-total-principal');
+  const tm=document.getElementById('dep-total-monthly');
+  const ta=document.getElementById('dep-total-annual');
+  if(tp) tp.textContent = fmt(totalPrincipal);
+  if(tm) tm.textContent = fmt(totalMonthly);
+  if(ta) ta.textContent = fmt(totalAnnual);
+
+  const list = document.getElementById('deposit-list');
+  if(!list) return;
+  if(!deps.length){
+    list.innerHTML='<div class="empty" style="padding:24px 0"><div class="et">Henüz mevduat eklenmedi.</div></div>';
+    return;
+  }
+  list.innerHTML = deps.map(d=>{
+    const daysLeft = d.maturity ? Math.ceil((new Date(d.maturity)-new Date())/(1000*60*60*24)) : null;
+    const maturityStr = daysLeft!==null ? (daysLeft>0 ? `<span style="color:${daysLeft<30?'var(--gold)':'var(--muted)'}">Vadeye ${daysLeft} gün</span>` : `<span style="color:var(--red)">Vade doldu</span>`) : '';
+    return `<div class="fi-row" style="padding:12px 0">
+      <div class="fi-left" style="flex:1">
+        <div class="fi-cat-dot" style="background:var(--ac)"></div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="fi-name">${d.bank}</div>
+            <span class="badge bo" style="font-size:.6rem">%${d.rate} · ${d.type==='compound'?'Bileşik':'Basit'}</span>
+            ${maturityStr}
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:3px;font-family:var(--fm)">
+            Anapara: <strong style="color:var(--text)">${fmt(d.principal)}</strong>
+            · Vergi: %${d.tax}
+            ${d.note?' · '+d.note:''}
+          </div>
+        </div>
+      </div>
+      <div style="text-align:right;margin-left:12px">
+        <div style="font-size:.75rem;color:var(--muted);font-family:var(--fm)">Aylık net</div>
+        <div style="font-size:1rem;font-weight:800;font-family:var(--fm);color:var(--green)">${fmt(d.monthlyNet)}</div>
+        <div style="font-size:.68rem;color:var(--muted);font-family:var(--fm)">Yıllık: ${fmt(d.annualNet)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-left:10px">
+        <button class="btn bg2 sm" onclick="openEditDeposit(${d.id})">✏</button>
+        <button class="btn bd sm" onclick="delDeposit(${d.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+
+// ══════════════════════════════════════════════
+// ALTIN / DÖVİZ / EUROBOND SİSTEMİ
+// ══════════════════════════════════════════════
+if(!S.goldFx) S.goldFx = [];
+let _gfxCounter = Date.now() + 200;
+
+const GFX_LABELS = {
+  gold_gram:'Gram Altın', gold_quarter:'Çeyrek Altın', gold_half:'Yarım Altın',
+  gold_full:'Tam Altın', gold_republic:'Cumhuriyet Altını', silver:'Gümüş',
+  usd:'Dolar', eur:'Euro', gbp:'Sterlin', chf:'CHF', jpy:'JPY', other_fx:'Döviz',
+  eurobond:'Eurobond', bond_tl:'Tahvil (TL)', sukuk:'Sukuk', other_bond:'Sabit Getirili'
+};
+const GFX_CATS = {
+  gold_gram:'gold', gold_quarter:'gold', gold_half:'gold', gold_full:'gold',
+  gold_republic:'gold', silver:'gold',
+  usd:'forex', eur:'forex', gbp:'forex', chf:'forex', jpy:'forex', other_fx:'forex',
+  eurobond:'bond', bond_tl:'bond', sukuk:'bond', other_bond:'bond'
+};
+
+function onGfxTypeChange(){
+  const t = document.getElementById('gfx-type').value;
+  const cat = GFX_CATS[t]||'gold';
+  const isBond = cat==='bond';
+  const isFx = cat==='forex';
+  document.getElementById('gfx-coupon-row').style.display = isBond?'flex':'none';
+  document.getElementById('gfx-maturity-row').style.display = isBond?'flex':'none';
+  document.getElementById('gfx-nominal-row').style.display = isBond?'flex':'none';
+  document.getElementById('gfx-currency-row').style.display = isFx?'flex':'none';
+  const qtyLabel = document.getElementById('gfx-qty-label');
+  const priceLabel = document.getElementById('gfx-price-label');
+  if(isBond){ qtyLabel.textContent='Adet / Lot *'; priceLabel.textContent='Piyasa Fiyatı (₺/birim)'; }
+  else if(isFx){ qtyLabel.textContent='Miktar (birim para) *'; priceLabel.textContent='Kur (₺/birim)'; }
+  else { qtyLabel.textContent='Miktar (gram/adet) *'; priceLabel.textContent='Birim Fiyat (₺)'; }
+  calcGfxValue();
+}
+
+function calcGfxValue(){
+  const t = document.getElementById('gfx-type').value;
+  const qty = parseFloat(document.getElementById('gfx-qty').value)||0;
+  const price = parseFloat(document.getElementById('gfx-price').value)||0;
+  const couponRate = parseFloat(document.getElementById('gfx-coupon-rate')?.value)||0;
+  const nominal = parseFloat(document.getElementById('gfx-nominal')?.value)||1000;
+  const cat = GFX_CATS[t]||'gold';
+  const prev = document.getElementById('gfx-preview');
+  if(!qty||!price){ prev.style.display='none'; return; }
+  const totalVal = qty * price;
+  prev.style.display = 'block';
+  document.getElementById('gfx-prev-val').textContent = fmt(totalVal);
+  const couponWrap = document.getElementById('gfx-prev-coupon-wrap');
+  if(cat==='bond' && couponRate>0){
+    const monthlyCoupon = (qty * nominal * couponRate / 100) / 12;
+    couponWrap.style.display = 'block';
+    document.getElementById('gfx-prev-coupon').textContent = fmt(monthlyCoupon);
+  } else {
+    couponWrap.style.display = 'none';
+  }
+}
+
+function openAddGoldFx(defaultType){
+  document.getElementById('gfx-modal-title').textContent = 'Varlık Ekle';
+  document.getElementById('gfx-item-id').value = '';
+  ['gfx-name','gfx-qty','gfx-price','gfx-coupon-rate','gfx-nominal','gfx-currency','gfx-note'].forEach(id=>{
+    const e=document.getElementById(id); if(e) e.value='';
+  });
+  document.getElementById('gfx-maturity').value='';
+  if(defaultType){
+    const map={gold:'gold_gram',forex:'usd',bond:'eurobond'};
+    document.getElementById('gfx-type').value = map[defaultType]||defaultType;
+  }
+  document.getElementById('gfx-preview').style.display='none';
+  onGfxTypeChange();
+  openModal('m-goldfx');
+}
+
+function openEditGoldFx(id){
+  const item=(S.goldFx||[]).find(x=>x.id===id); if(!item) return;
+  document.getElementById('gfx-modal-title').textContent='Varlık Düzenle';
+  document.getElementById('gfx-item-id').value=id;
+  document.getElementById('gfx-type').value=item.type||'gold_gram';
+  document.getElementById('gfx-name').value=item.name||'';
+  document.getElementById('gfx-qty').value=item.qty||'';
+  document.getElementById('gfx-price').value=item.price||'';
+  if(item.couponRate) document.getElementById('gfx-coupon-rate').value=item.couponRate;
+  if(item.maturity) document.getElementById('gfx-maturity').value=item.maturity;
+  if(item.nominal) document.getElementById('gfx-nominal').value=item.nominal;
+  if(item.currency) document.getElementById('gfx-currency').value=item.currency;
+  document.getElementById('gfx-note').value=item.note||'';
+  onGfxTypeChange();
+  calcGfxValue();
+  openModal('m-goldfx');
+}
+
+function saveGoldFx(){
+  const id = parseInt(document.getElementById('gfx-item-id').value)||0;
+  const type = document.getElementById('gfx-type').value;
+  const name = document.getElementById('gfx-name').value.trim() || GFX_LABELS[type]||type;
+  const qty = parseFloat(document.getElementById('gfx-qty').value)||0;
+  const price = parseFloat(document.getElementById('gfx-price').value)||0;
+  const couponRate = parseFloat(document.getElementById('gfx-coupon-rate')?.value)||0;
+  const maturity = document.getElementById('gfx-maturity')?.value||'';
+  const nominal = parseFloat(document.getElementById('gfx-nominal')?.value)||1000;
+  const currency = (document.getElementById('gfx-currency')?.value||'').toUpperCase();
+  const note = document.getElementById('gfx-note').value.trim();
+  if(!qty||!price){ alert('Miktar ve birim fiyat zorunludur.'); return; }
+  const cat = GFX_CATS[type]||'gold';
+  const totalVal = qty * price;
+  const monthlyCoupon = cat==='bond'&&couponRate>0 ? (qty*nominal*couponRate/100)/12 : 0;
+  if(!S.goldFx) S.goldFx=[];
+  const item={id:id||++_gfxCounter,type,cat,name,qty,price,totalVal,couponRate,maturity,nominal,currency,note,monthlyCoupon};
+  if(id){ const idx=S.goldFx.findIndex(x=>x.id===id); if(idx>=0) S.goldFx[idx]=item; }
+  else { S.goldFx.push(item); }
+  save();
+  closeModal('m-goldfx');
+  renderGoldFx();
+  renderDashboardNew();
+}
+
+function delGoldFx(id){
+  if(!confirm('Bu varlık silinsin mi?')) return;
+  S.goldFx=(S.goldFx||[]).filter(x=>x.id!==id);
+  save(); renderGoldFx(); renderDashboardNew();
+}
+
+function renderGoldFx(){
+  if(!S.goldFx) S.goldFx=[];
+  const goldItems = S.goldFx.filter(x=>x.cat==='gold');
+  const forexItems = S.goldFx.filter(x=>x.cat==='forex');
+  const bondItems = S.goldFx.filter(x=>x.cat==='bond');
+  const goldTotal = goldItems.reduce((a,x)=>a+x.totalVal,0);
+  const forexTotal = forexItems.reduce((a,x)=>a+x.totalVal,0);
+  const bondTotal = bondItems.reduce((a,x)=>a+x.totalVal,0);
+  const couponTotal = bondItems.reduce((a,x)=>a+(x.monthlyCoupon||0),0);
+  const el=id=>document.getElementById(id);
+  if(el('gfk-gold')) el('gfk-gold').textContent=fmt(goldTotal);
+  if(el('gfk-forex')) el('gfk-forex').textContent=fmt(forexTotal);
+  if(el('gfk-bond')) el('gfk-bond').textContent=fmt(bondTotal);
+  if(el('gfk-coupon')) el('gfk-coupon').textContent=fmt(couponTotal);
+
+  const rowHtml=(items,cat)=>{
+    if(!items.length) return '<div class="empty" style="padding:20px 0"><div class="et">Varlık yok</div></div>';
+    return items.map(x=>{
+      const daysLeft=x.maturity?Math.ceil((new Date(x.maturity)-new Date())/(86400000)):null;
+      return `<div class="fi-row" style="padding:11px 0">
+        <div class="fi-left">
+          <div class="fi-cat-dot" style="background:${cat==='gold'?'var(--gold)':cat==='forex'?'var(--ac2)':'var(--ac)'}"></div>
+          <div>
+            <div class="fi-name">${x.name||GFX_LABELS[x.type]||x.type}</div>
+            <div class="fi-type">${x.qty} × ${fmt(x.price)}${x.couponRate?' · Kupon %'+x.couponRate:''}${daysLeft!==null?' · Vade '+(daysLeft>0?daysLeft+' gün':'doldu'):''}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="text-align:right">
+            <div class="fi-amount">${fmt(x.totalVal)}</div>
+            ${x.monthlyCoupon>0?`<div style="font-size:.68rem;color:var(--green);font-family:var(--fm)">${fmt(x.monthlyCoupon)}/ay</div>`:''}
+          </div>
+          <div class="fi-actions" style="opacity:1">
+            <button class="btn bg2 sm" onclick="openEditGoldFx(${x.id})">✏</button>
+            <button class="btn bd sm" onclick="delGoldFx(${x.id})">✕</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  };
+  if(el('gfx-gold-list')) el('gfx-gold-list').innerHTML=rowHtml(goldItems,'gold');
+  if(el('gfx-forex-list')) el('gfx-forex-list').innerHTML=rowHtml(forexItems,'forex');
+  if(el('gfx-bond-list')) el('gfx-bond-list').innerHTML=rowHtml(bondItems,'bond');
+}
+
+function renderDeposit2(){
+  const deps=S.finance?.deposits||[];
+  const totalPrincipal=deps.reduce((a,d)=>a+d.principal,0);
+  const totalMonthly=deps.reduce((a,d)=>a+(d.monthlyNet||0),0);
+  const totalAnnual=deps.reduce((a,d)=>a+(d.annualNet||0),0);
+  ['dep2-principal','dep2-monthly','dep2-annual'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=fmt([totalPrincipal,totalMonthly,totalAnnual][i]);
+  });
+  const list=document.getElementById('dep2-list');
+  if(!list) return;
+  if(!deps.length){ list.innerHTML='<div class="empty"><div class="ei">🏦</div><div class="et">Henüz mevduat eklenmedi.</div></div>'; return; }
+  list.innerHTML=deps.map(d=>{
+    const daysLeft=d.maturity?Math.ceil((new Date(d.maturity)-new Date())/86400000):null;
+    return `<div class="fi-row" style="padding:14px 0">
+      <div class="fi-left" style="flex:1">
+        <div class="fi-cat-dot" style="background:var(--ac)"></div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="fi-name">${d.bank}</div>
+            <span class="badge bo">%${d.rate} yıllık</span>
+            ${daysLeft!==null?`<span style="font-size:.7rem;color:${daysLeft<30?'var(--gold)':'var(--muted)'}">Vadeye ${daysLeft>0?daysLeft+' gün':'doldu'}</span>`:''}
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:3px;font-family:var(--fm)">Anapara: <strong style="color:var(--text)">${fmt(d.principal)}</strong> · Vergi: %${d.tax} · ${d.type==='compound'?'Bileşik':'Basit'} faiz${d.note?' · '+d.note:''}</div>
+        </div>
+      </div>
+      <div style="text-align:right;margin:0 12px">
+        <div style="font-size:.7rem;color:var(--muted)">Aylık net</div>
+        <div style="font-size:1rem;font-weight:800;font-family:var(--fm);color:var(--green)">${fmt(d.monthlyNet)}</div>
+        <div style="font-size:.68rem;color:var(--muted);font-family:var(--fm)">Yıllık: ${fmt(d.annualNet)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="btn bg2 sm" onclick="openEditDeposit(${d.id})">✏</button>
+        <button class="btn bd sm" onclick="delDeposit2(${d.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function delDeposit2(id){
+  if(!confirm('Mevduat hesabı silinsin mi?')) return;
+  S.finance.deposits=(S.finance.deposits||[]).filter(x=>x.id!==id);
+  save(); renderDeposit2();
+}
+
+// ══════════════════════════════════════════════
+// YENİ ANA SAYFA RENDER
+// ══════════════════════════════════════════════
+function getGoldFxTotal(){ return (S.goldFx||[]).reduce((a,x)=>a+(x.totalVal||0),0); }
+function getBondMonthlyIncome(){ return (S.goldFx||[]).filter(x=>x.cat==='bond').reduce((a,x)=>a+(x.monthlyCoupon||0),0); }
+
+function renderDashboardNew(){
+  // ─ Tüm varlık değerleri ─
+  const stockVal = typeof calcStockCurrentValue==='function'?calcStockCurrentValue():0;
+  const fundVal  = typeof calcFundCurrentValue==='function'?calcFundCurrentValue():0;
+  const goldFxVal = getGoldFxTotal();
+  const depVal   = (S.finance?.deposits||[]).reduce((a,d)=>a+d.principal,0);
+  const besVal   = (S.finance?.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
+  const manualAssets = (S.finance?.assets||[]).reduce((a,x)=>a+x.amount,0);
+  const liabilities  = (S.finance?.liabilities||[]).reduce((a,x)=>a+x.amount,0);
+  const totalAssets  = stockVal+fundVal+goldFxVal+depVal+besVal+manualAssets;
+  const netWorth     = totalAssets-liabilities;
+
+  // ─ Tüm gelirler ─
+  const manualIncome = (S.finance?.incomes||[]).reduce((a,i)=>a+i.amount,0);
+  const autoIncome   = typeof getAutoIncomes==='function'?getAutoIncomes().reduce((a,i)=>a+i.amount,0):0;
+  const totalIncome  = manualIncome+autoIncome;
+  const totalExpense = typeof getTotalExpense==='function'?getTotalExpense():0;
+  const netFlow      = totalIncome-totalExpense;
+  const healthScore  = typeof getFinancialHealthScore==='function'?getFinancialHealthScore():0;
+
+  // ─ KPI kartları ─
+  const el=id=>document.getElementById(id);
+  if(el('dk-networth')){
+    el('dk-networth').textContent=fmt(netWorth);
+    el('dk-networth').className='kval mo '+(netWorth>=0?'pos':'neg');
+    el('dk-networth-sub').textContent=fmt(totalAssets)+' varlık';
+  }
+  if(el('dk-assets')) el('dk-assets').textContent=fmt(totalAssets);
+  if(el('dk-assets-sub')) el('dk-assets-sub').textContent=(S.stocks?.length||0)+' hisse · '+(S.funds?.length||0)+' fon';
+  if(el('dk-income')){
+    el('dk-income').textContent=fmt(totalIncome);
+    el('dk-income-sub').textContent='maaş+faiz+temettü+...';
+  }
+  if(el('dk-netflow')){
+    el('dk-netflow').textContent=fmt(netFlow);
+    el('dk-netflow').className='kval mo '+(netFlow>=0?'pos':'neg');
+    el('dk-netflow-sub').className='ktrend '+(netFlow>=0?'up':'down');
+    el('dk-netflow-sub').textContent=(netFlow>=0?'▲ Tasarruf':'▼ Açık')+' · %'+(totalIncome>0?Math.abs(Math.round(netFlow/totalIncome*100)):0);
+  }
+  if(el('dk-health')){
+    el('dk-health').textContent=healthScore+'/100';
+    el('dk-health').className='kval mo '+(healthScore>=70?'pos':healthScore>=40?'':'neg');
+    el('dk-health-sub').textContent=healthScore>=70?'İyi 💪':healthScore>=40?'Orta ⚠️':'Dikkat 🔴';
+  }
+
+  // ─ Varlık dağılım barları ─
+  const assetGroups=[
+    {label:'Hisse Senedi', val:stockVal, color:'var(--ac)'},
+    {label:'Yatırım Fonu', val:fundVal, color:'var(--ac2)'},
+    {label:'Altın/Döviz/Bond', val:goldFxVal, color:'var(--gold)'},
+    {label:'Mevduat', val:depVal, color:'rgba(0,212,170,.6)'},
+    {label:'BES', val:besVal, color:'var(--green)'},
+    {label:'Diğer Varlık', val:manualAssets, color:'var(--muted2)'},
+  ].filter(g=>g.val>0);
+
+  const barsEl=el('dash-asset-bars');
+  if(barsEl){
+    const maxVal=Math.max(...assetGroups.map(g=>g.val),1);
+    barsEl.innerHTML=assetGroups.map(g=>`
+      <div class="brow">
+        <div class="blabel" style="width:130px;font-size:.72rem;color:var(--text);font-weight:600">${g.label}</div>
+        <div class="btrack">
+          <div class="bfill" style="width:${(g.val/maxVal*100).toFixed(1)}%;background:${g.color}"></div>
+        </div>
+        <div style="width:90px;text-align:right;font-size:.72rem;font-family:var(--fm);color:var(--muted2)">${fmt(g.val)}</div>
+        <div style="width:40px;text-align:right;font-size:.68rem;font-family:var(--fm);color:var(--muted)">${totalAssets>0?Math.round(g.val/totalAssets*100):0}%</div>
+      </div>`).join('');
+  }
+
+  // ─ Donut chart ─
+  const donutCanvas=el('donutChart');
+  if(donutCanvas&&assetGroups.length){
+    if(window._dashDonut){window._dashDonut.destroy();window._dashDonut=null;}
+    const c=tc();
+    window._dashDonut=new Chart(donutCanvas,{
+      type:'doughnut',
+      data:{labels:assetGroups.map(g=>g.label),datasets:[{data:assetGroups.map(g=>g.val),backgroundColor:assetGroups.map(g=>g.color),borderWidth:0,hoverOffset:4}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'72%'}
+    });
+    if(el('donut-val')) el('donut-val').textContent=totalAssets>=1e6?'₺'+(totalAssets/1e6).toFixed(1)+'M':fmt(totalAssets).replace('₺','');
+    if(el('donut-lbl')) el('donut-lbl').textContent='Toplam';
+    // Legend
+    const legEl=el('donut-legend');
+    if(legEl) legEl.innerHTML=assetGroups.map(g=>`
+      <div class="dl-item">
+        <div class="dl-dot" style="background:${g.color}"></div>
+        <div class="dl-name">${g.label}</div>
+        <div class="dl-pct">${totalAssets>0?Math.round(g.val/totalAssets*100):0}%</div>
+      </div>`).join('');
+  }
+
+  // ─ Gelir kaynakları ─
+  const incomeRows=el('dash-income-rows');
+  const incTotalEl=el('dash-income-total');
+  if(incomeRows){
+    const allIncomes=[
+      ...(S.finance?.incomes||[]).filter(i=>i.amount>0),
+      ...(typeof getAutoIncomes==='function'?getAutoIncomes().filter(i=>i.amount>0):[]),
+    ];
+    incomeRows.innerHTML=allIncomes.map(i=>`
+      <div class="fi-row" style="padding:9px 0">
+        <div class="fi-left">
+          <div class="fi-cat-dot" style="background:${CAT_COLORS[i.category]||'var(--ac)'}"></div>
+          <div>
+            <div class="fi-name">${i.name}</div>
+            <div class="fi-type">${i.category}${i.auto?' · Otomatik':''}</div>
+          </div>
+        </div>
+        <div class="fi-amount pos">${fmt(i.amount)}<span style="font-size:.65rem;color:var(--muted);font-family:var(--fm)">/ay</span></div>
+      </div>`).join('')||'<div style="color:var(--muted);font-size:.8rem;padding:12px 0">Gelir kaydı yok — <a onclick="showPage('cashflow')" style="color:var(--ac);cursor:pointer">Ekle</a></div>';
+    if(incTotalEl) incTotalEl.textContent=fmt(totalIncome)+' / ay';
+  }
+}
+
+function setDashAssetTab(mode, btn){
+  document.querySelectorAll('#dash-asset-tabs .ctab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  // Re-render bars with different mode if needed
+  renderDashboardNew();
+}
+
 </script>
+<!-- ALTIN/DÖVİZ/BOND MODAL -->
+<div class="ov" id="m-goldfx">
+  <div class="modal">
+    <div class="mt" id="gfx-modal-title">Varlık Ekle</div>
+    <input type="hidden" id="gfx-item-id">
+    <input type="hidden" id="gfx-item-subtype">
+    <div class="fg">
+      <div class="fi full">
+        <label>Tür *</label>
+        <select id="gfx-type" onchange="onGfxTypeChange()">
+          <optgroup label="── Altın & Gümüş ──">
+            <option value="gold_gram">Gram Altın</option>
+            <option value="gold_quarter">Çeyrek Altın</option>
+            <option value="gold_half">Yarım Altın</option>
+            <option value="gold_full">Tam Altın</option>
+            <option value="gold_republic">Cumhuriyet Altını</option>
+            <option value="silver">Gümüş (gram)</option>
+          </optgroup>
+          <optgroup label="── Döviz ──">
+            <option value="usd">Dolar (USD)</option>
+            <option value="eur">Euro (EUR)</option>
+            <option value="gbp">Sterlin (GBP)</option>
+            <option value="chf">İsviçre Frangı (CHF)</option>
+            <option value="jpy">Japon Yeni (JPY)</option>
+            <option value="other_fx">Diğer Döviz</option>
+          </optgroup>
+          <optgroup label="── Sabit Getirili ──">
+            <option value="eurobond">Eurobond</option>
+            <option value="bond_tl">Tahvil (TL)</option>
+            <option value="sukuk">Sukuk / Kira Sertifikası</option>
+            <option value="other_bond">Diğer Sabit Getirili</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="fi full"><label>Açıklama / İsim</label><input type="text" id="gfx-name" placeholder="Örn: Ziraat Eurobond 2028"></div>
+      <div class="fi"><label id="gfx-qty-label">Miktar / Adet *</label><input type="number" id="gfx-qty" placeholder="0" step="any" oninput="calcGfxValue()"></div>
+      <div class="fi"><label id="gfx-price-label">Birim Fiyat (₺) *</label><input type="number" id="gfx-price" placeholder="0" step="any" oninput="calcGfxValue()"></div>
+      <!-- Bond alanları -->
+      <div class="fi" id="gfx-coupon-row" style="display:none"><label>Kupon Oranı (% yıllık)</label><input type="number" id="gfx-coupon-rate" placeholder="8.5" step="0.1" oninput="calcGfxValue()"></div>
+      <div class="fi" id="gfx-maturity-row" style="display:none"><label>Vade Tarihi</label><input type="date" id="gfx-maturity"></div>
+      <div class="fi" id="gfx-nominal-row" style="display:none"><label>Nominal Değer (₺/birim)</label><input type="number" id="gfx-nominal" placeholder="1000" step="1" oninput="calcGfxValue()"></div>
+      <!-- Currency için -->
+      <div class="fi" id="gfx-currency-row" style="display:none"><label>Döviz Kodu</label><input type="text" id="gfx-currency" placeholder="USD" style="text-transform:uppercase" maxlength="5"></div>
+      <div class="fi full"><label>Not</label><input type="text" id="gfx-note" placeholder="Opsiyonel..."></div>
+    </div>
+    <!-- Önizleme -->
+    <div id="gfx-preview" style="background:var(--sf2);border:1px solid var(--br);border-radius:12px;padding:14px;margin:12px 0;display:none">
+      <div style="font-size:.65rem;font-weight:700;color:var(--ac);letter-spacing:.8px;margin-bottom:8px;text-transform:uppercase">Hesap Özeti</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase">Güncel Değer</div><div style="font-family:var(--fm);font-weight:700;margin-top:3px" id="gfx-prev-val">—</div></div>
+        <div id="gfx-prev-coupon-wrap" style="display:none"><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase">Aylık Kupon</div><div style="font-family:var(--fm);font-weight:700;margin-top:3px;color:var(--green)" id="gfx-prev-coupon">—</div></div>
+      </div>
+    </div>
+    <div class="ma">
+      <button class="btn bg2" onclick="closeModal('m-goldfx')">İptal</button>
+      <button class="btn bp" onclick="saveGoldFx()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- MEVDUAT MODAL -->
+<div class="ov" id="m-deposit">
+  <div class="modal">
+    <div class="mt" id="dep-modal-title">🏦 Mevduat Hesabı Ekle</div>
+    <input type="hidden" id="dep-item-id" value="">
+    <div class="fg">
+      <div class="fi full"><label>Banka / Hesap Adı *</label><input type="text" id="dep-bank" placeholder="Örn: Ziraat Bankası TL Mevduat"></div>
+      <div class="fi"><label>Anapara (₺) *</label><input type="number" id="dep-principal" placeholder="500000" step="1000" oninput="calcDepositInterest()"></div>
+      <div class="fi"><label>Yıllık Faiz Oranı (%) *</label><input type="number" id="dep-rate" placeholder="45" step="0.1" oninput="calcDepositInterest()"></div>
+      <div class="fi"><label>Vade Tarihi</label><input type="date" id="dep-maturity"></div>
+      <div class="fi"><label>Faiz Tipi</label>
+        <select id="dep-type" onchange="calcDepositInterest()">
+          <option value="simple">Basit Faiz</option>
+          <option value="compound">Bileşik Faiz</option>
+        </select>
+      </div>
+      <div class="fi"><label>Vergi Kesintisi (%)</label>
+        <select id="dep-tax">
+          <option value="0">Yok</option>
+          <option value="5" selected>%5 (≤6 ay)</option>
+          <option value="3">%3 (6-12 ay)</option>
+          <option value="0">%0 (≥1 yıl)</option>
+        </select>
+      </div>
+      <div class="fi full">
+        <label>Not</label>
+        <input type="text" id="dep-note" placeholder="Opsiyonel açıklama...">
+      </div>
+    </div>
+    <!-- Otomatik hesap önizleme -->
+    <div id="dep-preview" style="background:var(--sf2);border:1px solid var(--br);border-radius:12px;padding:14px;margin:14px 0;display:none">
+      <div style="font-size:.65rem;font-weight:700;color:var(--ac);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">Faiz Hesabı Önizleme</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Aylık Brüt</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px" id="dep-prev-monthly">—</div></div>
+        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Aylık Net</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px;color:var(--green)" id="dep-prev-net">—</div></div>
+        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Yıllık Net</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px;color:var(--green)" id="dep-prev-annual">—</div></div>
+      </div>
+    </div>
+    <div class="ma">
+      <button class="btn bg2" onclick="closeModal('m-deposit')">İptal</button>
+      <button class="btn bp" onclick="saveDeposit()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /main-content -->
 </div><!-- /app-layout -->
 </body>
