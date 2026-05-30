@@ -208,11 +208,11 @@ select option{background:var(--sf2)}
 .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
 .donut-val{font-size:1.5rem;font-weight:800;font-family:var(--fm)}
 .donut-lbl{font-size:.62rem;color:var(--muted);font-family:var(--fm);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
-.donut-legend{display:flex;flex-direction:column;gap:8px;justify-content:center}
-.dl-item{display:flex;align-items:center;gap:8px;font-size:.78rem}
+.donut-legend{display:flex;flex-direction:column;gap:6px;justify-content:center;min-width:0;overflow:hidden}
+.dl-item{display:flex;align-items:center;gap:6px;font-size:.72rem;min-width:0}
 .dl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.dl-name{color:var(--text);font-weight:600;font-family:var(--fm);font-size:.75rem}
-.dl-pct{color:var(--muted2);font-family:var(--fm);font-size:.72rem;margin-left:auto;padding-left:8px}
+.dl-name{color:var(--text);font-weight:600;font-family:var(--fm);font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.dl-pct{color:var(--muted2);font-family:var(--fm);font-size:.68rem;flex-shrink:0;padding-left:4px}
 
 /* ═══ HEATMAP ═══ */
 .heatmap{display:grid;grid-template-columns:repeat(12,1fr);gap:4px}
@@ -882,14 +882,16 @@ function recoverFromKey(key){
         <!-- DONUT - Varlık türü dağılımı -->
         <div class="cb" style="padding:18px">
           <div class="ct" style="margin-bottom:14px">Varlık <span>Türleri</span></div>
-          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-            <div class="donut-wrap"><canvas id="donutChart"></canvas>
-              <div class="donut-center">
-                <div class="donut-val mo" id="donut-val">0</div>
-                <div class="donut-lbl" id="donut-lbl">Toplam</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:center">
+              <div class="donut-wrap" style="width:150px;height:150px"><canvas id="donutChart"></canvas>
+                <div class="donut-center">
+                  <div class="donut-val mo" id="donut-val" style="font-size:1.1rem">0</div>
+                  <div class="donut-lbl" id="donut-lbl">Toplam</div>
+                </div>
               </div>
             </div>
-            <div class="donut-legend" id="donut-legend" style="flex:1;min-width:80px"></div>
+            <div class="donut-legend" id="donut-legend"></div>
           </div>
         </div>
 
@@ -2409,7 +2411,10 @@ try{
     else if(pid==='p-deposit'&&typeof renderDeposit2==='function') renderDeposit2();
   }
 }catch(e){}
-try{if(typeof renderDashboardNew==='function')renderDashboardNew();}catch(e){}
+try{
+  if(typeof renderDashboardNew==='function') renderDashboardNew();
+  else setTimeout(()=>{if(typeof renderDashboardNew==='function') renderDashboardNew();},200);
+}catch(e){}
 }
 function renderDashboardNetWidget(){
   const el=document.getElementById('dash-net-widget');
@@ -2699,13 +2704,18 @@ function renderDonut(){
   const depVal=(S.finance?.deposits||[]).reduce((a,d)=>a+d.principal,0);
   const besVal=(S.finance?.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
   const manualVal=(S.finance?.assets||[]).reduce((a,x)=>a+x.amount,0);
+  const goldVal=(S.goldFx||[]).filter(x=>x.cat==='gold').reduce((a,x)=>a+(x.totalVal||0),0);
+  const forexVal=(S.goldFx||[]).filter(x=>x.cat==='forex').reduce((a,x)=>a+(x.totalVal||0),0);
+  const bondVal=(S.goldFx||[]).filter(x=>x.cat==='bond').reduce((a,x)=>a+(x.totalVal||0),0);
   const groups=[
     {label:'Hisse Senedi',val:stockVal,color:'var(--ac)'},
     {label:'Yatırım Fonu',val:fundVal,color:'var(--ac2)'},
-    {label:'Altın/Döviz/Bond',val:goldFxVal,color:'var(--gold)'},
+    {label:'Altın & Gümüş',val:goldVal,color:'var(--gold)'},
+    {label:'Döviz',val:forexVal,color:'rgba(0,149,255,.8)'},
+    {label:'Eurobond/Tahvil',val:bondVal,color:'rgba(168,85,247,.8)'},
     {label:'Mevduat',val:depVal,color:'rgba(0,212,170,.6)'},
     {label:'BES',val:besVal,color:'var(--green)'},
-    {label:'Diğer',val:manualVal,color:'var(--muted2)'},
+    {label:'Diğer Varlık',val:manualVal,color:'var(--muted2)'},
   ].filter(g=>g.val>0);
   const total=groups.reduce((a,g)=>a+g.val,0)||1;
   const dv=document.getElementById('donut-val');
@@ -4123,7 +4133,12 @@ function today(){return new Date().toISOString().split('T')[0];}
 // ══════════════════════════════════════════════
 load();
 setTheme(S.settings?.theme||'ocean');
-renderAll();
+// setTimeout: tüm script blokları yüklendikten sonra render et
+setTimeout(function(){
+  renderAll();
+  if(typeof renderDashboardNew==='function') renderDashboardNew();
+  if(typeof renderDonut==='function') renderDonut();
+}, 0);
 if(typeof loadApiKey==='function')loadApiKey();
 try{
   const restorePage=sessionStorage.getItem(TXN_REFRESH_PAGE_KEY);
@@ -6992,10 +7007,15 @@ function renderDashboardNew(){
   }
 
   // ─ Varlık dağılım barları ─
+  const goldVal2=(S.goldFx||[]).filter(x=>x.cat==='gold').reduce((a,x)=>a+(x.totalVal||0),0);
+  const forexVal2=(S.goldFx||[]).filter(x=>x.cat==='forex').reduce((a,x)=>a+(x.totalVal||0),0);
+  const bondVal2=(S.goldFx||[]).filter(x=>x.cat==='bond').reduce((a,x)=>a+(x.totalVal||0),0);
   const assetGroups=[
     {label:'Hisse Senedi', val:stockVal, color:'var(--ac)'},
     {label:'Yatırım Fonu', val:fundVal, color:'var(--ac2)'},
-    {label:'Altın/Döviz/Bond', val:goldFxVal, color:'var(--gold)'},
+    {label:'Altın & Gümüş', val:goldVal2, color:'var(--gold)'},
+    {label:'Döviz', val:forexVal2, color:'rgba(0,149,255,.8)'},
+    {label:'Eurobond/Tahvil', val:bondVal2, color:'rgba(168,85,247,.8)'},
     {label:'Mevduat', val:depVal, color:'rgba(0,212,170,.6)'},
     {label:'BES', val:besVal, color:'var(--green)'},
     {label:'Diğer Varlık', val:manualAssets, color:'var(--muted2)'},
