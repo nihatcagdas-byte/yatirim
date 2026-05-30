@@ -2690,37 +2690,49 @@ function drawSparkSVG(ticker){
 // DONUT CHART
 // ══════════════════════════════════════════════
 function renderDonut(){
+  // renderDashboardNew içindeki assetGroups ile aynı veriyi kullan
   const canvas=document.getElementById('donutChart');
-  const cols=tc().palette;
-  let data=[];
+  if(!canvas) return;
   const stockVal=calcStockCurrentValue();
-  if(stockVal>0) data.push({ticker:'📈 Hisseler',val:stockVal});
-  (S.funds||[]).forEach(f=>{
-    const pos=calcFundPosition(f);
-    const v=(f.curNav||pos.avgNav)*pos.shares;
-    if(v>0) data.push({ticker:f.code,val:v});
-  });
-  const total=data.reduce((a,d)=>a+d.val,0)||1;
+  const fundVal=calcFundCurrentValue();
+  const goldFxVal=(S.goldFx||[]).reduce((a,x)=>a+(x.totalVal||0),0);
+  const depVal=(S.finance?.deposits||[]).reduce((a,d)=>a+d.principal,0);
+  const besVal=(S.finance?.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
+  const manualVal=(S.finance?.assets||[]).reduce((a,x)=>a+x.amount,0);
+  const groups=[
+    {label:'Hisse Senedi',val:stockVal,color:'var(--ac)'},
+    {label:'Yatırım Fonu',val:fundVal,color:'var(--ac2)'},
+    {label:'Altın/Döviz/Bond',val:goldFxVal,color:'var(--gold)'},
+    {label:'Mevduat',val:depVal,color:'rgba(0,212,170,.6)'},
+    {label:'BES',val:besVal,color:'var(--green)'},
+    {label:'Diğer',val:manualVal,color:'var(--muted2)'},
+  ].filter(g=>g.val>0);
+  const total=groups.reduce((a,g)=>a+g.val,0)||1;
   const dv=document.getElementById('donut-val');
-  if(dv) dv.textContent=data.length?Math.round(total).toLocaleString('tr-TR'):'0';
-  if(!data.length){
+  const dl=document.getElementById('donut-lbl');
+  const leg=document.getElementById('donut-legend');
+  if(dv) dv.textContent=total>=1e6?'₺'+(total/1e6).toFixed(1)+'M':Math.round(total).toLocaleString('tr-TR');
+  if(dl) dl.textContent='Toplam';
+  if(!groups.length){
     if(donutChart){donutChart.destroy();donutChart=null;}
-    document.getElementById('donut-legend').innerHTML='<div style="color:var(--muted);font-size:.75rem">Varlık ekleyin</div>';
+    if(leg) leg.innerHTML='<div style="color:var(--muted);font-size:.75rem">Varlık ekleyin</div>';
     return;
   }
-  data.sort((a,b)=>b.val-a.val);
-  if(donutChart)donutChart.destroy();
+  if(donutChart) donutChart.destroy();
   donutChart=new Chart(canvas,{
     type:'doughnut',
-    data:{labels:data.map(d=>d.ticker),datasets:[{data:data.map(d=>d.val),backgroundColor:cols.slice(0,data.length),borderColor:'var(--sf)',borderWidth:2,hoverBorderWidth:3}]},
-    options:{responsive:true,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmt(ctx.raw)} (${(ctx.raw/total*100).toFixed(1)}%)`}}}}
+    data:{labels:groups.map(g=>g.label),datasets:[{data:groups.map(g=>g.val),backgroundColor:groups.map(g=>g.color),borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmt(ctx.raw)} (%${Math.round(ctx.raw/total*100)})`}}}}
   });
-  document.getElementById('donut-legend').innerHTML=data.slice(0,8).map((d,i)=>`
+  if(leg) leg.innerHTML=groups.map(g=>`
     <div class="dl-item">
-      <div class="dl-dot" style="background:${cols[i]}"></div>
-      <span class="dl-name">${d.ticker}</span>
-      <span class="dl-pct">${(d.val/total*100).toFixed(1)}%</span>
+      <div class="dl-dot" style="background:${g.color}"></div>
+      <span class="dl-name">${g.label}</span>
+      <span class="dl-pct">${Math.round(g.val/total*100)}%</span>
     </div>`).join('');
+  // window._dashDonut senkronize et
+  if(window._dashDonut){window._dashDonut.destroy();window._dashDonut=null;}
+  window._dashDonut=donutChart;
 }
 
 // ══════════════════════════════════════════════
@@ -6496,14 +6508,48 @@ function calcDepositInterest(){
   const principal = parseFloat(document.getElementById('dep-principal')?.value) || 0;
   const rate = parseFloat(document.getElementById('dep-rate')?.value) || 0;
   const tax = parseFloat(document.getElementById('dep-tax')?.value) || 0;
+  const startVal = document.getElementById('dep-start')?.value || '';
+  const endVal = document.getElementById('dep-maturity')?.value || '';
   const prev = document.getElementById('dep-preview');
   if(!prev) return;
   if(!principal || !rate){ prev.style.display='none'; return; }
-  const {gross, net, annual} = calcDepMonthlyNet(principal, rate, tax);
   prev.style.display = 'block';
-  document.getElementById('dep-prev-monthly').textContent = fmt(gross);
-  document.getElementById('dep-prev-net').textContent = fmt(net);
-  document.getElementById('dep-prev-annual').textContent = fmt(annual);
+
+  // Gün bazlı hesap - başlangıç ve bitiş tarihi varsa tam gün
+  let days = 0;
+  let daysText = '—';
+  if(startVal && endVal){
+    const start = new Date(startVal);
+    const end = new Date(endVal);
+    days = Math.max(0, Math.round((end - start) / (1000*60*60*24)));
+    daysText = days + ' gün';
+  }
+
+  let totalGross, totalNet, monthlyNet;
+  if(days > 0){
+    // Gerçek gün bazlı hesap
+    if(document.getElementById('dep-type')?.value === 'compound'){
+      const dailyRate = rate / 100 / 365;
+      const total = principal * Math.pow(1 + dailyRate, days);
+      totalGross = total - principal;
+    } else {
+      totalGross = principal * (rate / 100) * (days / 365);
+    }
+    totalNet = totalGross * (1 - tax / 100);
+    monthlyNet = days > 0 ? totalNet / (days / 30) : 0;
+  } else {
+    // Tarih yoksa aylık hesap
+    totalGross = (principal * rate / 100) / 12;
+    totalNet = totalGross * (1 - tax / 100);
+    monthlyNet = totalNet;
+    daysText = '(tarih girin)';
+  }
+
+  const daysEl = document.getElementById('dep-prev-days');
+  if(daysEl) daysEl.textContent = daysText;
+  document.getElementById('dep-prev-monthly').textContent = fmt(totalGross);
+  document.getElementById('dep-prev-net').textContent = fmt(totalNet);
+  document.getElementById('dep-prev-annual').textContent = fmt(monthlyNet) + '/ay';
 }
 
 function openAddDeposit(){
@@ -6512,6 +6558,7 @@ function openAddDeposit(){
   ['dep-bank','dep-principal','dep-rate','dep-note'].forEach(id=>{
     const e=document.getElementById(id); if(e) e.value='';
   });
+  document.getElementById('dep-start').value = '';
   document.getElementById('dep-maturity').value = '';
   document.getElementById('dep-type').value = 'simple';
   document.getElementById('dep-tax').value = '5';
@@ -6527,6 +6574,7 @@ function openEditDeposit(id){
   document.getElementById('dep-bank').value = d.bank||'';
   document.getElementById('dep-principal').value = d.principal||'';
   document.getElementById('dep-rate').value = d.rate||'';
+  document.getElementById('dep-start').value = d.startDate||'';
   document.getElementById('dep-maturity').value = d.maturity||'';
   document.getElementById('dep-type').value = d.type||'simple';
   document.getElementById('dep-tax').value = d.tax||'5';
@@ -6540,14 +6588,36 @@ function saveDeposit(){
   const bank = document.getElementById('dep-bank').value.trim();
   const principal = parseFloat(document.getElementById('dep-principal').value)||0;
   const rate = parseFloat(document.getElementById('dep-rate').value)||0;
-  const maturity = document.getElementById('dep-maturity').value;
+  const startDate = document.getElementById('dep-start')?.value || '';
+  const maturity = document.getElementById('dep-maturity')?.value || '';
   const type = document.getElementById('dep-type').value;
   const tax = parseFloat(document.getElementById('dep-tax').value)||0;
   const note = document.getElementById('dep-note').value.trim();
   if(!bank || !principal || !rate){ alert('Banka adı, anapara ve faiz oranı zorunludur.'); return; }
   if(!S.finance.deposits) S.finance.deposits=[];
-  const {gross, net, annual} = calcDepMonthlyNet(principal, rate, tax);
-  const item = {id: id||++_depCounter, bank, principal, rate, maturity, type, tax, note, monthlyGross: gross, monthlyNet: net, annualNet: annual};
+
+  // Gün bazlı hesap
+  let days = 0;
+  if(startDate && maturity){
+    days = Math.max(0, Math.round((new Date(maturity) - new Date(startDate)) / (1000*60*60*24)));
+  }
+  let totalGross, totalNet, monthlyNet;
+  if(days > 0){
+    if(type === 'compound'){
+      totalGross = principal * Math.pow(1 + (rate/100/365), days) - principal;
+    } else {
+      totalGross = principal * (rate/100) * (days/365);
+    }
+    totalNet = totalGross * (1 - tax/100);
+    monthlyNet = totalNet / (days/30);
+  } else {
+    totalGross = (principal * rate/100) / 12;
+    totalNet = totalGross * (1 - tax/100);
+    monthlyNet = totalNet;
+  }
+
+  const item = {id: id||++_depCounter, bank, principal, rate, startDate, maturity, type, tax, note,
+    days, totalGross, totalNet, monthlyGross: totalGross, monthlyNet, annualNet: monthlyNet*12};
   if(id){
     const idx = S.finance.deposits.findIndex(x=>x.id===id);
     if(idx>=0) S.finance.deposits[idx] = item;
@@ -6835,7 +6905,14 @@ function renderDeposit2(){
             <span class="badge bo">%${d.rate} yıllık</span>
             ${daysLeft!==null?`<span style="font-size:.7rem;color:${daysLeft<30?'var(--gold)':'var(--muted)'}">Vadeye ${daysLeft>0?daysLeft+' gün':'doldu'}</span>`:''}
           </div>
-          <div style="font-size:.7rem;color:var(--muted);margin-top:3px;font-family:var(--fm)">Anapara: <strong style="color:var(--text)">${fmt(d.principal)}</strong> · Vergi: %${d.tax} · ${d.type==='compound'?'Bileşik':'Basit'} faiz${d.note?' · '+d.note:''}</div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:3px;font-family:var(--fm)">
+          Anapara: <strong style="color:var(--text)">${fmt(d.principal)}</strong>
+          ${d.days>0?' · <strong style="color:var(--ac)">'+d.days+' gün</strong>':''}
+          · %${d.rate} · Vergi %${d.tax} · ${d.type==='compound'?'Bileşik':'Basit'}
+          ${d.startDate?' · '+d.startDate:''}${d.maturity?' → '+d.maturity:''}
+          ${d.totalNet>0?' · Toplam net: <strong style="color:var(--green)">'+fmt(d.totalNet)+'</strong>':''}
+          ${d.note?' · '+d.note:''}
+        </div>
         </div>
       </div>
       <div style="text-align:right;margin:0 12px">
@@ -7170,7 +7247,8 @@ function renderDividendsPage(){
       <div class="fi full"><label>Banka / Hesap Adı *</label><input type="text" id="dep-bank" placeholder="Örn: Ziraat Bankası TL Mevduat"></div>
       <div class="fi"><label>Anapara (₺) *</label><input type="number" id="dep-principal" placeholder="500000" step="1000" oninput="calcDepositInterest()"></div>
       <div class="fi"><label>Yıllık Faiz Oranı (%) *</label><input type="number" id="dep-rate" placeholder="45" step="0.1" oninput="calcDepositInterest()"></div>
-      <div class="fi"><label>Vade Tarihi</label><input type="date" id="dep-maturity"></div>
+      <div class="fi"><label>Başlangıç Tarihi *</label><input type="date" id="dep-start" oninput="calcDepositInterest()"></div>
+      <div class="fi"><label>Bitiş / Vade Tarihi *</label><input type="date" id="dep-maturity" oninput="calcDepositInterest()"></div>
       <div class="fi"><label>Faiz Tipi</label>
         <select id="dep-type" onchange="calcDepositInterest()">
           <option value="simple">Basit Faiz</option>
@@ -7188,10 +7266,11 @@ function renderDividendsPage(){
     <!-- Otomatik hesap önizleme -->
     <div id="dep-preview" style="background:var(--sf2);border:1px solid var(--br);border-radius:12px;padding:14px;margin:14px 0;display:none">
       <div style="font-size:.65rem;font-weight:700;color:var(--ac);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">Faiz Hesabı Önizleme</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Aylık Brüt</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px" id="dep-prev-monthly">—</div></div>
-        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Aylık Net</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px;color:var(--green)" id="dep-prev-net">—</div></div>
-        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Yıllık Net</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px;color:var(--green)" id="dep-prev-annual">—</div></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Vade Süresi</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px" id="dep-prev-days">—</div></div>
+        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Toplam Faiz (Brüt)</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px" id="dep-prev-monthly">—</div></div>
+        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Toplam Net</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px;color:var(--green)" id="dep-prev-net">—</div></div>
+        <div><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Aylık Net Ort.</div><div style="font-family:var(--fm);font-weight:700;font-size:.9rem;margin-top:3px;color:var(--green)" id="dep-prev-annual">—</div></div>
       </div>
     </div>
     <div class="ma">
