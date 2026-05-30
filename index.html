@@ -556,6 +556,22 @@ function unlockApp(){
   }
 }
 
+function resetLock(){
+  if(!confirm('Şifre sıfırlanacak ve uygulama açılacak. Verileriniz korunur. Devam?'))return;
+  try{
+    localStorage.removeItem(LOCK_KEY);
+    localStorage.removeItem(LOCK_TS_KEY);
+  }catch(e){}
+  document.getElementById('lock-screen').style.display='none';
+  document.getElementById('app-layout').style.display='flex';
+  document.getElementById('lock-err').textContent='';
+  document.getElementById('lock-pwd').value='';
+  // Yeni şifre kurulum ekranını göster
+  document.getElementById('lock-sub-text').textContent='Şifre sıfırlandı. Yeni 8 karakterli şifre belirleyin.';
+  document.getElementById('lock-setup-hint').style.display='block';
+  alert('Şifre sıfırlandı. Uygulamayı kapattığınızda yeni şifre isteyecek.');
+}
+
 function lockApp(){
   try{localStorage.setItem(LOCK_TS_KEY,'0');}catch(e){}
   document.getElementById('app-layout').style.display='none';
@@ -592,7 +608,7 @@ function tryRecoverData(){
       var s=(d.stocks||[]).length;
       var f=(d.funds||[]).length;
       var dv=(d.dividends||[]).length;
-      var btn=(s>0||f>0||dv>0)?'<button class="btn bp sm" style="margin-left:6px" onclick="recoverFromKey(''+k+'')">Yükle</button>':'';
+      var btn=(s>0||f>0||dv>0)?'<button class="btn bp sm" style="margin-left:6px" onclick="recoverFromKey(this.dataset.key)" data-key="'+k+'">Yükle</button>':'';
       html+='<div style="padding:6px 0;border-bottom:1px solid var(--br)">'
            +'<span style="font-family:monospace;font-size:.7rem;color:var(--muted)">'+k+'</span> '
            +'<span style="color:var(--muted2);font-size:.68rem">'+s+' hisse · '+f+' fon · '+dv+' temettü</span>'
@@ -652,6 +668,9 @@ function recoverFromKey(key){
     <div class="lock-err" id="lock-err"></div>
     <div class="lock-setup" id="lock-setup-hint" style="display:none">
       İlk kullanım — <a onclick="showLockSetup()">şifre oluşturun</a>
+    </div>
+    <div style="margin-top:16px;font-size:.72rem">
+      <a onclick="resetLock()" style="color:var(--muted);cursor:pointer;text-decoration:underline">Şifremi unuttum / sıfırla</a>
     </div>
   </div>
 </div>
