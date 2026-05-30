@@ -1267,6 +1267,16 @@ function lockApp(){
           </div>
           <p style="font-size:.72rem;color:var(--muted);margin-top:10px">💡 Farklı cihazda kullanmak için: JSON Yedek Al → diğer cihazda sayfayı aç → Yedekten Geri Yükle</p>
           <input type="file" id="imp" accept=".json" style="display:none" onchange="handleImport(event)">
+
+          <!-- VERİ KURTARMA -->
+          <div style="background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.2);border-radius:12px;padding:14px;margin-top:16px">
+            <div style="font-size:.72rem;font-weight:700;color:var(--gold);margin-bottom:8px">🔧 Veri Kurtarma</div>
+            <div style="font-size:.75rem;color:var(--muted2);margin-bottom:10px;line-height:1.7">
+              Verileriniz kaybolmuş görünüyorsa, tarayıcıda daha önce farklı bir anahtar ile kaydedilmiş olabilir. Aşağıdaki butona tıklayarak eski veriyi kurtarmaya çalışın.
+            </div>
+            <button class="btn bg2 sm" onclick="tryRecoverData()">🔍 Eski Veriyi Kurtar</button>
+            <div id="recover-result" style="font-size:.72rem;margin-top:8px;font-family:var(--fm)"></div>
+          </div>
         </div>
       </div>
       <div>
@@ -6791,6 +6801,53 @@ function setDashAssetTab(mode, btn){
   if(btn) btn.classList.add('active');
   // Re-render bars with different mode if needed
   renderDashboardNew();
+}
+
+
+// ══════════════════════════════════════════════
+// VERİ KURTARMA
+// ══════════════════════════════════════════════
+function tryRecoverData(){
+  const resultEl = document.getElementById('recover-result');
+  const keys = [];
+  try{
+    for(let i=0; i<localStorage.length; i++){
+      keys.push(localStorage.key(i));
+    }
+  }catch(e){ if(resultEl) resultEl.textContent='localStorage erişim hatası.'; return; }
+  
+  // Olası anahtar adları
+  const candidates = keys.filter(k=>k && (
+    k.includes('takip') || k.includes('tmtt') || k.includes('stock') || 
+    k.includes('fund') || k.includes('portfolio') || k.includes('yatirim')
+  ));
+  
+  if(resultEl) resultEl.innerHTML = `Bulunan anahtarlar: <strong>${keys.length}</strong> · Aday: <strong>${candidates.length}</strong><br>${candidates.map(k=>{
+    try{
+      const d=JSON.parse(localStorage.getItem(k)||'{}');
+      const stocks=(d.stocks||[]).length;
+      const funds=(d.funds||[]).length;
+      const divs=(d.dividends||[]).length;
+      return `<span style="color:var(--ac);cursor:pointer;text-decoration:underline" onclick="recoverFromKey('${k}')">${k}</span>: ${stocks} hisse, ${funds} fon, ${divs} temettü`;
+    }catch(e){return k+': (okunamadı)';}
+  }).join('<br>')||'Uygun anahtar bulunamadı.<br><span style="color:var(--muted)">Tüm anahtarlar: '+keys.slice(0,10).join(', ')+'</span>'}`;
+}
+
+function recoverFromKey(key){
+  try{
+    const d=JSON.parse(localStorage.getItem(key)||'{}');
+    if(!d.stocks && !d.funds){ alert('Bu anahtarda geçerli veri bulunamadı.'); return; }
+    if(!confirm(`"${key}" anahtarından veri yüklensin mi? Mevcut verinin üzerine yazılacak.`)) return;
+    S = Object.assign({stocks:[],dividends:[],notes:[],settings:{},prices:{},funds:[],fundDistributions:[],finance:null,goldFx:[]}, d);
+    if(!S.funds) S.funds=[];
+    if(!S.goldFx) S.goldFx=[];
+    if(!S.finance) S.finance={incomes:[],expenses:[],assets:[],liabilities:[],bes:[],deposits:[],projParams:{}};
+    ['incomes','expenses','assets','liabilities','bes','deposits'].forEach(k=>{ if(!S.finance[k]) S.finance[k]=[]; });
+    save();
+    renderAll();
+    alert('✅ Veri kurtarıldı! '+((d.stocks||[]).length)+' hisse, '+((d.funds||[]).length)+' fon yüklendi.');
+    document.getElementById('recover-result').innerHTML='<span style="color:var(--green)">✅ Kurtarıldı!</span>';
+  }catch(e){ alert('Kurtarma hatası: '+e.message); }
 }
 
 </script>
