@@ -1666,9 +1666,9 @@ function recoverFromKey(key){
         <div></div>
         <div style="display:flex;gap:8px">
           <div id="bes-kpi-row" style="display:flex;gap:10px;flex-wrap:wrap">
-            <div class="stat-chip"><div class="stat-chip-lbl">Toplam Katkı</div><div class="stat-chip-val mo" id="bes-total-contrib">₺0</div></div>
-            <div class="stat-chip"><div class="stat-chip-lbl">Devlet Katkısı</div><div class="stat-chip-val mo pos" id="bes-total-state">₺0</div></div>
-            <div class="stat-chip"><div class="stat-chip-lbl">Güncel Değer</div><div class="stat-chip-val mo" id="bes-total-val">₺0</div></div>
+            <div class="stat-chip"><div class="stat-chip-lbl">Aylık Katkım</div><div class="stat-chip-val mo" id="bes-total-contrib">₺0</div></div>
+            <div class="stat-chip"><div class="stat-chip-lbl">Aylık Devlet Katkısı</div><div class="stat-chip-val mo pos" id="bes-total-state">₺0</div></div>
+            <div class="stat-chip"><div class="stat-chip-lbl">Toplam Güncel Değer</div><div class="stat-chip-val mo" id="bes-total-val">₺0</div></div>
           </div>
           <button class="btn bp" onclick="openAddBES()">+ BES Ekle</button>
         </div>
@@ -2003,7 +2003,8 @@ function recoverFromKey(key){
       <div class="fi"><label>Güncel Değer (₺)</label><input type="number" id="bes-curval" placeholder="0" step="1"></div>
       <div class="fi"><label>Doğum Yılı</label><input type="number" id="bes-birthyear" placeholder="1990" min="1940" max="2005"></div>
       <div class="fi"><label>Emeklilik Yaşı</label><input type="number" id="bes-retireage" placeholder="56" min="45" max="70"></div>
-      <div class="fi full"><label>Yıllık Tahmini Getiri (%)</label><input type="number" id="bes-return" placeholder="12" step="0.5"></div>
+      <div class="fi"><label>Devlet Katkısı Oranı (%)</label><input type="number" id="bes-state-rate" placeholder="20" step="1" min="0" max="100" value="20"></div>
+      <div class="fi"><label>Yıllık Tahmini Getiri (%)</label><input type="number" id="bes-return" placeholder="12" step="0.5"></div>
     </div>
     <div class="ma"><button class="btn bg2" onclick="closeModal('m-bes')">İptal</button><button class="btn bp" onclick="saveBES()">Kaydet</button></div>
   </div>
@@ -5762,7 +5763,7 @@ function getAutoIncomes(){
     const fdTotal=(S.fundDistributions||[]).filter(d=>new Date(d.date)>=ayOnceTarih).reduce((a,d)=>a+d.net,0);
     if(fdTotal>0) result.push({name:'Fon Dağıtımı',amount:fdTotal/12,category:'Fon Dağıtımı (Oto)',auto:true,note:'Son 12 ay ortalama'});
     // BES devlet katkısı
-    const besTotal=(S.finance?.bes||[]).reduce((a,b)=>a+((b.monthlyContrib||0)*0.25),0);
+    const besTotal=(S.finance?.bes||[]).reduce((a,b)=>a+((b.monthlyContrib||0)*((b.stateRate||20)/100)),0);
     if(besTotal>0) result.push({name:'BES Devlet Katkısı',amount:besTotal,category:'BES Devlet Katkısı (Oto)',auto:true,note:'%25 devlet katkısı'});
     // Mevduat faiz gelirleri
     if(typeof getDepositAutoIncomes==='function') result.push(...getDepositAutoIncomes());
@@ -6077,11 +6078,11 @@ function renderBES(){
     besArea.innerHTML='<div class="empty"><div class="ei">🏦</div><div class="et">Henüz BES hesabı eklenmedi.<br>Yukarıdan ekleyebilirsiniz.</div></div>';
     return;
   }
-  const totalContrib=besList.reduce((a,b)=>a+b.totalContrib,0);
-  const totalState=besList.reduce((a,b)=>a+b.totalStateContrib,0);
+  const monthlyContribTotal=besList.reduce((a,b)=>a+(b.monthlyContrib||0),0);
+  const monthlyStateTotal=besList.reduce((a,b)=>a+(b.monthlyContrib||0)*((b.stateRate||20)/100),0);
   const totalVal=besList.reduce((a,b)=>a+(b.currentValue||0),0);
-  document.getElementById('bes-total-contrib').textContent=fmt(totalContrib);
-  document.getElementById('bes-total-state').textContent=fmt(totalState);
+  document.getElementById('bes-total-contrib').textContent=fmt(monthlyContribTotal);
+  document.getElementById('bes-total-state').textContent=fmt(monthlyStateTotal);
   document.getElementById('bes-total-val').textContent=fmt(totalVal);
 
   besArea.innerHTML=besList.map(b=>{
@@ -6097,10 +6098,9 @@ function renderBES(){
           <button class="btn bd sm" onclick="delBES(${b.id})">✕</button>
         </div>
       </div>
-      <div class="bes-kpis">
-        <div class="kcard"><div class="klabel">Aylık Katkı</div><div class="kval mo" style="font-size:1.1rem">${fmt(b.monthlyContrib)}</div></div>
-        <div class="kcard"><div class="klabel">Devlet Katkısı</div><div class="kval mo pos" style="font-size:1.1rem">${fmt(b.monthlyContrib*0.25)}/ay</div><div class="ksub">Toplam: ${fmt(b.totalStateContrib||0)}</div></div>
-        <div class="kcard"><div class="klabel">Toplam Katkı</div><div class="kval mo" style="font-size:1.1rem">${fmt(b.totalContrib)}</div></div>
+      <div class="bes-kpis" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kcard"><div class="klabel">Aylık Katkım</div><div class="kval mo" style="font-size:1.1rem">${fmt(b.monthlyContrib)}</div></div>
+        <div class="kcard"><div class="klabel">Aylık Devlet Katkısı (%${b.stateRate||20})</div><div class="kval mo pos" style="font-size:1.1rem">${fmt(b.monthlyContrib*((b.stateRate||20)/100))}</div></div>
         <div class="kcard"><div class="klabel">Güncel Değer</div><div class="kval mo" style="font-size:1.1rem">${b.currentValue?fmt(b.currentValue):'—'}</div></div>
       </div>
       ${yearsToRetire!==null?`<div style="background:var(--sf2);border-radius:10px;padding:12px;margin-top:8px;font-size:.8rem"><span style="color:var(--muted)">Emekliliğe kalan:</span> <strong style="color:var(--ac)">${yearsToRetire} yıl</strong> · <span style="color:var(--muted)">Tahmini birikim:</span> <strong>${projectedVal>1e6?'₺'+(projectedVal/1e6).toFixed(2)+'M':fmt(projectedVal)}</strong> (yıllık ${b.annualReturn||12}% getiri)</div>`:''}
@@ -6187,7 +6187,7 @@ function delFinanceItem(type,id){
 let _besCounter=Date.now()+1;
 function openAddBES(){
   document.getElementById('bes-modal-title').textContent='BES Hesabı Ekle';
-  ['bes-company','bes-start','bes-contrib','bes-curval','bes-birthyear','bes-retireage','bes-return'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['bes-company','bes-start','bes-contrib','bes-curval','bes-birthyear','bes-retireage','bes-return','bes-state-rate'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('bes-item-id').value='';
   document.getElementById('bes-start').value=today();
   openModal('m-bes');
@@ -6203,6 +6203,7 @@ function openEditBES(id){
   document.getElementById('bes-birthyear').value=b.birthYear||'';
   document.getElementById('bes-retireage').value=b.retireAge||'56';
   document.getElementById('bes-return').value=b.annualReturn||'12';
+  document.getElementById('bes-state-rate').value=b.stateRate||'20';
   openModal('m-bes');
 }
 function saveBES(){
@@ -6214,13 +6215,14 @@ function saveBES(){
   const birthYear=parseInt(document.getElementById('bes-birthyear').value)||0;
   const retireAge=parseInt(document.getElementById('bes-retireage').value)||56;
   const annualReturn=parseFloat(document.getElementById('bes-return').value)||12;
+  const stateRate=parseFloat(document.getElementById('bes-state-rate')?.value)||25;
   if(!company||!startDate){alert('Şirket adı ve başlangıç tarihi zorunludur.');return;}
   const months=Math.max(0,Math.round((new Date()-new Date(startDate))/(1000*60*60*24*30)));
   const totalContrib=monthlyContrib*months;
-  const totalStateContrib=totalContrib*0.25;
+  const totalStateContrib=totalContrib*(stateRate/100);
   if(!S.finance.bes)S.finance.bes=[];
   if(id){const b=S.finance.bes.find(x=>x.id===id);if(b){Object.assign(b,{company,startDate,monthlyContrib,currentValue,birthYear,retireAge,annualReturn,totalContrib,totalStateContrib});}}
-  else{S.finance.bes.push({id:++_besCounter,company,startDate,monthlyContrib,currentValue,birthYear,retireAge,annualReturn,totalContrib,totalStateContrib});}
+  else{S.finance.bes.push({id:++_besCounter,company,startDate,monthlyContrib,currentValue,birthYear,retireAge,annualReturn,stateRate,totalContrib,totalStateContrib});}
   save();closeModal('m-bes');
   renderBES2();
   renderBES();
@@ -6461,14 +6463,14 @@ function renderProjection2(){
 
 function renderBES2(){
   const besList=S.finance.bes||[];
-  const totalContrib=besList.reduce((a,b)=>a+b.totalContrib,0);
-  const totalState=besList.reduce((a,b)=>a+b.totalStateContrib,0);
+  const monthlyC=besList.reduce((a,b)=>a+(b.monthlyContrib||0),0);
+  const monthlyS=besList.reduce((a,b)=>a+(b.monthlyContrib||0)*((b.stateRate||20)/100),0);
   const totalVal=besList.reduce((a,b)=>a+(b.currentValue||0),0);
   const c1=document.getElementById('bes2-total-contrib');
   const c2=document.getElementById('bes2-total-state');
   const c3=document.getElementById('bes2-total-val');
-  if(c1) c1.textContent=fmt(totalContrib);
-  if(c2) c2.textContent=fmt(totalState);
+  if(c1) c1.textContent=fmt(monthlyC);
+  if(c2) c2.textContent=fmt(monthlyS);
   if(c3) c3.textContent=fmt(totalVal);
 
   const besArea=document.getElementById('bes2-list');
@@ -6490,10 +6492,9 @@ function renderBES2(){
           <button class="btn bd sm" onclick="delBES2(${b.id})">✕</button>
         </div>
       </div>
-      <div class="bes-kpis">
-        <div class="kcard"><div class="klabel">Aylık Katkı</div><div class="kval mo" style="font-size:1.1rem">${fmt(b.monthlyContrib)}</div></div>
-        <div class="kcard"><div class="klabel">Devlet Katkısı</div><div class="kval mo pos" style="font-size:1.1rem">${fmt(b.monthlyContrib*0.25)}/ay</div><div class="ksub">Toplam: ${fmt(b.totalStateContrib||0)}</div></div>
-        <div class="kcard"><div class="klabel">Toplam Katkı</div><div class="kval mo" style="font-size:1.1rem">${fmt(b.totalContrib)}</div></div>
+      <div class="bes-kpis" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kcard"><div class="klabel">Aylık Katkım</div><div class="kval mo" style="font-size:1.1rem">${fmt(b.monthlyContrib)}</div></div>
+        <div class="kcard"><div class="klabel">Aylık Devlet Katkısı (%${b.stateRate||20})</div><div class="kval mo pos" style="font-size:1.1rem">${fmt(b.monthlyContrib*((b.stateRate||20)/100))}</div></div>
         <div class="kcard"><div class="klabel">Güncel Değer</div><div class="kval mo" style="font-size:1.1rem">${b.currentValue?fmt(b.currentValue):'—'}</div></div>
       </div>
       ${yearsToRetire!==null?`<div style="background:var(--sf2);border-radius:10px;padding:12px;margin-top:8px;font-size:.8rem"><span style="color:var(--muted)">Emekliliğe kalan:</span> <strong style="color:var(--ac)">${yearsToRetire} yıl</strong>${projectedVal>0?' · <span style="color:var(--muted)">Tahmini birikim:</span> <strong>'+( projectedVal>=1e6?'₺'+(projectedVal/1e6).toFixed(2)+'M':fmt(projectedVal))+'</strong> (yıllık '+( b.annualReturn||12)+'% getiri)':''}</div>`:''}
