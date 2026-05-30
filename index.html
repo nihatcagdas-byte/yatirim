@@ -5822,9 +5822,16 @@ function saveFinanceItem(){
   const list=lists[type];
   if(id){const item=list.find(x=>x.id===id);if(item){item.name=name;item.amount=amount;item.category=category;item.note=note;if(item.repeat!==undefined)item.repeat=repeat;if(item.monthly!==undefined)item.monthly=monthly;}}
   else{const newItem={id:++_finItemCounter,name,amount,category,note};if(type==='income'||type==='expense')newItem.repeat=repeat;if(type==='liability')newItem.monthly=monthly;list.push(newItem);}
-  save();closeModal('m-finance-item');
-  if(type==='income'||type==='expense')renderCashflow();
-  else renderWealth();
+  save();
+  closeModal('m-finance-item');
+  // Aktif sayfaya göre doğru render fonksiyonunu çağır
+  const activePage=document.querySelector('.page.active');
+  const pid=activePage?activePage.id:'';
+  if(pid==='p-cashflow') renderCashflow2();
+  else if(pid==='p-wealth') renderWealth2();
+  else if(pid==='p-projection') renderProjection2();
+  else if(type==='income'||type==='expense') renderCashflow2();
+  else renderWealth2();
 }
 function delFinanceItem(type,id){
   if(!confirm('Bu kalem silinsin mi?'))return;
@@ -5832,8 +5839,12 @@ function delFinanceItem(type,id){
   lists[type]=lists[type].filter(x=>x.id!==id);
   S.finance[type+'s']=lists[type];
   save();
-  if(type==='income'||type==='expense')renderCashflow();
-  else renderWealth();
+  const activePage=document.querySelector('.page.active');
+  const pid=activePage?activePage.id:'';
+  if(pid==='p-cashflow') renderCashflow2();
+  else if(pid==='p-wealth') renderWealth2();
+  else if(type==='income'||type==='expense') renderCashflow2();
+  else renderWealth2();
 }
 
 // BES CRUD
@@ -5874,7 +5885,9 @@ function saveBES(){
   if(!S.finance.bes)S.finance.bes=[];
   if(id){const b=S.finance.bes.find(x=>x.id===id);if(b){Object.assign(b,{company,startDate,monthlyContrib,currentValue,birthYear,retireAge,annualReturn,totalContrib,totalStateContrib});}}
   else{S.finance.bes.push({id:++_besCounter,company,startDate,monthlyContrib,currentValue,birthYear,retireAge,annualReturn,totalContrib,totalStateContrib});}
-  save();closeModal('m-bes');renderBES();
+  save();closeModal('m-bes');
+  const _abp=document.querySelector('.page.active');
+  if(_abp&&_abp.id==='p-bes') renderBES2(); else renderBES();
 }
 function delBES(id){
   if(!confirm('BES hesabı silinsin mi?'))return;
