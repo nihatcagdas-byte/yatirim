@@ -650,8 +650,8 @@ function recoverFromKey(key){
       try{localStorage.setItem(LOCK_TS_KEY,Date.now().toString());}catch(e){}
     }
   }catch(e){
-    document.getElementById('lock-screen').style.display='none';
-    document.getElementById('app-layout').style.display='flex';
+    try{document.getElementById('lock-screen').style.display='none';}catch(e2){}
+    try{document.getElementById('app-layout').style.display='flex';}catch(e2){}
   }
   try{document.getElementById('lock-pwd').focus();}catch(e){}
 })();
@@ -6868,7 +6868,7 @@ function renderDashboardNew(){
           </div>
         </div>
         <div class="fi-amount pos">${fmt(i.amount)}<span style="font-size:.65rem;color:var(--muted);font-family:var(--fm)">/ay</span></div>
-      </div>`).join('')||'<div style="color:var(--muted);font-size:.8rem;padding:12px 0">Gelir kaydı yok — <a onclick="showPage('cashflow')" style="color:var(--ac);cursor:pointer">Ekle</a></div>';
+      </div>`).join('')||'<div style="color:var(--muted);font-size:.8rem;padding:12px 0">Gelir kaydı yok</div>';
     if(incTotalEl) incTotalEl.textContent=fmt(totalIncome)+' / ay';
   }
 }
