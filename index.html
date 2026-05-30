@@ -29,6 +29,13 @@
   --nav:#080612cc;--card-glow:rgba(168,85,247,.06);
   --fd:'Syne',sans-serif;--fm:'DM Mono',monospace;
 }
+[data-theme="light"]{
+  --bg:#f0f4f8;--sf:#ffffff;--sf2:#f7fafc;--sf3:#edf2f7;--br:#cbd5e0;
+  --ac:#2b6cb0;--ac2:#2c7a7b;--red:#e53e3e;--green:#276749;--gold:#b7791f;
+  --text:#1a202c;--muted:#718096;--muted2:#a0aec0;
+  --nav:#f0f4f8ee;--card-glow:rgba(43,108,176,.04);
+  --fd:'Syne',sans-serif;--fm:'DM Mono',monospace;
+}
 
 *{margin:0;padding:0;box-sizing:border-box}
 *:not(canvas){transition:background-color .3s,border-color .3s,color .15s}
@@ -357,9 +364,163 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
 #save-btn{background:var(--ac);color:#000;font-weight:800}
 [data-theme="amber"] #save-btn,[data-theme="purple"] #save-btn{color:#fff}
 #save-btn:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,212,170,.3)}
+
+/* ═══ LOCK SCREEN ═══ */
+#lock-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.lock-box{background:var(--sf);border:1px solid var(--br);border-radius:24px;padding:40px 36px;width:340px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.4)}
+.lock-logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 16px}
+.lock-title{font-size:1.2rem;font-weight:800;margin-bottom:4px}
+.lock-sub{font-size:.8rem;color:var(--muted);margin-bottom:24px}
+.lock-input{background:var(--sf2);border:1px solid var(--br);border-radius:12px;padding:12px 16px;color:var(--text);font-size:1rem;font-family:var(--fm);letter-spacing:.3em;text-align:center;width:100%;outline:none;transition:border-color .2s}
+.lock-input:focus{border-color:var(--ac)}
+.lock-btn{width:100%;margin-top:14px;background:var(--ac);color:#000;border:none;border-radius:12px;padding:12px;font-size:.9rem;font-weight:800;cursor:pointer;font-family:var(--fd);transition:filter .2s}
+[data-theme="amber"] .lock-btn,[data-theme="purple"] .lock-btn,[data-theme="light"] .lock-btn{color:#fff}
+.lock-btn:hover{filter:brightness(1.1)}
+.lock-err{color:var(--red);font-size:.78rem;margin-top:8px;min-height:20px;font-family:var(--fm)}
+.lock-setup{font-size:.75rem;color:var(--muted);margin-top:16px;line-height:1.6}
+.lock-setup a{color:var(--ac);cursor:pointer;text-decoration:underline}
+
+/* ═══ SIDEBAR LAYOUT ═══ */
+body{overflow-x:hidden}
+.app-layout{display:flex;min-height:100vh}
+.sidebar{width:220px;flex-shrink:0;background:var(--sf);border-right:1px solid var(--br);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:width .25s ease}
+.sidebar.collapsed{width:52px}
+.sb-inner{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.sb-head{padding:18px 16px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--br);flex-shrink:0;white-space:nowrap;overflow:hidden}
+.sidebar.collapsed .sb-head{padding:18px 0 14px;justify-content:center}
+.sb-logo-mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
+.sb-logo-text{font-size:.92rem;font-weight:800;letter-spacing:-.4px;transition:opacity .2s,width .2s;overflow:hidden}
+.sb-logo-text span{color:var(--ac)}
+.sidebar.collapsed .sb-logo-text{opacity:0;width:0}
+.sb-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 0}
+.sb-nav::-webkit-scrollbar{width:3px}
+.sb-section{font-size:.55rem;font-weight:700;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;padding:10px 16px 4px;white-space:nowrap;overflow:hidden;transition:opacity .15s,height .2s,padding .2s}
+.sidebar.collapsed .sb-section{opacity:0;height:0;padding:0;overflow:hidden}
+.sb-item{display:flex;align-items:center;gap:10px;padding:8px 16px;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;position:relative;white-space:nowrap;overflow:hidden;border:none;background:transparent;font-family:var(--fd);width:100%;text-align:left}
+.sidebar.collapsed .sb-item{padding:8px 0;justify-content:center;gap:0}
+.sb-item:hover{color:var(--text);background:var(--sf2)}
+.sb-item.active{color:var(--ac);background:rgba(0,212,170,.07);font-weight:700}
+[data-theme="amber"] .sb-item.active{background:rgba(217,119,6,.07)}
+[data-theme="purple"] .sb-item.active{background:rgba(168,85,247,.07)}
+[data-theme="light"] .sb-item.active{background:rgba(43,108,176,.07)}
+.sb-item.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--ac);border-radius:0 3px 3px 0}
+.sb-item-icon{font-size:.9rem;width:18px;flex-shrink:0;text-align:center}
+.sb-item-label{transition:opacity .2s,width .2s;overflow:hidden}
+.sidebar.collapsed .sb-item-label{opacity:0;width:0}
+.sb-badge{margin-left:auto;font-size:.58rem;padding:2px 6px;border-radius:99px;background:rgba(0,212,170,.12);color:var(--ac);font-weight:700;font-family:var(--fm);transition:opacity .2s}
+.sb-badge.danger{background:rgba(255,69,96,.12);color:var(--red)}
+.sidebar.collapsed .sb-badge{opacity:0;width:0;margin:0;padding:0;overflow:hidden}
+.sb-foot{border-top:1px solid var(--br);padding:10px 0;flex-shrink:0}
+.sb-theme-row{display:flex;align-items:center;gap:6px;padding:8px 16px;overflow:hidden;white-space:nowrap}
+.sidebar.collapsed .sb-theme-row{padding:8px 0;justify-content:center}
+.sb-theme-lbl{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-family:var(--fm);transition:opacity .2s,width .2s}
+.sidebar.collapsed .sb-theme-lbl{opacity:0;width:0;overflow:hidden}
+.sb-tbtn{width:16px;height:16px;border-radius:50%;border:2px solid transparent;cursor:pointer;flex-shrink:0;transition:all .2s}
+.sb-tbtn:hover{transform:scale(1.25)}
+.sb-tbtn.active{border-color:var(--text)}
+.sb-tbtn[data-t="ocean"]{background:conic-gradient(#0a0e14 0 50%,#00d4aa 50%)}
+.sb-tbtn[data-t="amber"]{background:conic-gradient(#fdf8f0 0 50%,#d97706 50%)}
+.sb-tbtn[data-t="purple"]{background:conic-gradient(#0d0a1a 0 50%,#a855f7 50%)}
+.sb-tbtn[data-t="light"]{background:conic-gradient(#e2e8f0 0 50%,#2b6cb0 50%)}
+.sb-user{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;overflow:hidden;white-space:nowrap}
+.sidebar.collapsed .sb-user{padding:8px 0;justify-content:center;gap:0}
+.sb-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;color:#000;flex-shrink:0}
+[data-theme="amber"] .sb-avatar,[data-theme="purple"] .sb-avatar,[data-theme="light"] .sb-avatar{color:#fff}
+.sb-user-info{flex:1;min-width:0;transition:opacity .2s,width .2s}
+.sidebar.collapsed .sb-user-info{opacity:0;width:0;overflow:hidden}
+.sb-user-name{font-size:.75rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user-sub{font-size:.62rem;color:var(--muted)}
+.sb-lock-icon{font-size:.7rem;color:var(--muted);transition:opacity .2s}
+.sidebar.collapsed .sb-lock-icon{opacity:0;width:0;overflow:hidden}
+
+/* TOGGLE BUTTON */
+.sb-toggle{position:fixed;top:16px;left:204px;z-index:200;width:22px;height:22px;border-radius:50%;background:var(--sf);border:1px solid var(--br);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.7rem;transition:left .25s ease,color .15s;color:var(--muted)}
+.sb-toggle:hover{color:var(--text);border-color:var(--ac)}
+.sidebar.collapsed~.sb-toggle,.sb-toggle.collapsed{left:38px}
+
+/* MAIN CONTENT */
+.main-content{margin-left:220px;flex:1;min-width:0;transition:margin-left .25s ease}
+.main-content.expanded{margin-left:52px}
+
+/* ALERT adjustment */
+.alert-banner{position:relative;z-index:50}
+
+/* SIDEBAR TOOLTIP for collapsed */
+.sb-item[data-tip-sb]:hover::after{content:attr(data-tip-sb);position:fixed;left:60px;background:var(--sf3);border:1px solid var(--br);color:var(--text);font-size:.72rem;padding:4px 10px;border-radius:8px;white-space:nowrap;z-index:9999;font-family:var(--fm);pointer-events:none}
+
+/* ═══ SERVET SAYFASI ═══ */
+.wealth-tabs{display:flex;gap:4px;background:var(--sf2);border-radius:10px;padding:3px;border:1px solid var(--br);margin-bottom:20px;flex-wrap:wrap}
+.wtab{padding:7px 16px;border-radius:8px;cursor:pointer;font-size:.75rem;font-weight:700;border:none;background:transparent;color:var(--muted);transition:all .2s;font-family:var(--fd)}
+.wtab:hover{color:var(--text)}
+.wtab.active{background:var(--sf3);color:var(--text)}
+.finance-section{display:none}
+.finance-section.active{display:block;animation:fadeIn .2s ease}
+.income-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.finance-card{background:var(--sf);border:1px solid var(--br);border-radius:18px;overflow:hidden;box-shadow:inset 0 0 40px var(--card-glow)}
+.fc-head{padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;background:var(--sf2)}
+.fc-title{font-size:.85rem;font-weight:700}
+.fc-total{font-size:1rem;font-weight:800;font-family:var(--fm)}
+.fc-body{padding:16px 18px}
+.fi-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--br);gap:10px}
+.fi-row:last-child{border-bottom:none}
+.fi-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.fi-cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.fi-name{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fi-type{font-size:.62rem;color:var(--muted);font-family:var(--fm)}
+.fi-amount{font-size:.85rem;font-weight:700;font-family:var(--fm);white-space:nowrap}
+.fi-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.fi-row:hover .fi-actions{opacity:1}
+.net-flow-bar{background:var(--sf);border:1px solid var(--br);border-radius:18px;padding:20px;margin-bottom:20px;box-shadow:inset 0 0 40px var(--card-glow)}
+.nf-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.nf-item{text-align:center}
+.nf-lbl{font-size:.6rem;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.nf-val{font-size:1.4rem;font-weight:800;font-family:var(--fm)}
+.health-meter{background:var(--sf);border:1px solid var(--br);border-radius:18px;padding:20px;margin-bottom:20px}
+.health-score{font-size:3rem;font-weight:800;font-family:var(--fm);text-align:center;margin:10px 0}
+.health-bar{height:12px;background:var(--sf3);border-radius:99px;overflow:hidden;margin-top:8px}
+.health-fill{height:100%;border-radius:99px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.balance-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.balance-side{background:var(--sf);border:1px solid var(--br);border-radius:18px;overflow:hidden}
+.bs-head{padding:14px 18px;background:var(--sf2);border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between}
+.bs-title{font-size:.85rem;font-weight:700}
+.bs-total{font-size:.95rem;font-weight:800;font-family:var(--fm)}
+.bs-body{padding:16px 18px}
+.bs-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--br)}
+.bs-row:last-child{border-bottom:none}
+.net-worth-banner{background:var(--sf);border:1px solid var(--br);border-radius:18px;padding:24px;margin-bottom:20px;text-align:center;box-shadow:inset 0 0 40px var(--card-glow)}
+.nw-val{font-size:2.5rem;font-weight:800;font-family:var(--fm)}
+.proj-scenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.scenario-card{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:16px;cursor:pointer;transition:all .2s}
+.scenario-card:hover{border-color:var(--ac);transform:translateY(-2px)}
+.scenario-card.selected{border-color:var(--ac);background:rgba(0,212,170,.06)}
+[data-theme="amber"] .scenario-card.selected{background:rgba(217,119,6,.06)}
+[data-theme="purple"] .scenario-card.selected{background:rgba(168,85,247,.06)}
+[data-theme="light"] .scenario-card.selected{background:rgba(43,108,176,.06)}
+.sc-name{font-size:.8rem;font-weight:700;margin-bottom:4px}
+.sc-desc{font-size:.7rem;color:var(--muted);line-height:1.5}
+.bes-card{background:var(--sf);border:1px solid var(--br);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:inset 0 0 40px var(--card-glow)}
+.bes-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.bes-company{font-size:.9rem;font-weight:700}
+.bes-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+
 </style>
 </head>
 <body>
+
+<!-- LOCK SCREEN -->
+<div id="lock-screen">
+  <div class="lock-box">
+    <div class="lock-logo">📈</div>
+    <div class="lock-title">Yatırım<span style="color:var(--ac)">Takip</span></div>
+    <div class="lock-sub" id="lock-sub-text">Devam etmek için şifrenizi girin</div>
+    <input type="password" class="lock-input" id="lock-pwd" placeholder="••••••••" maxlength="8" autocomplete="current-password" onkeydown="if(event.key==='Enter')unlockApp()">
+    <button class="lock-btn" onclick="unlockApp()">Kilidi Aç</button>
+    <div class="lock-err" id="lock-err"></div>
+    <div class="lock-setup" id="lock-setup-hint" style="display:none">
+      İlk kullanım — <a onclick="showLockSetup()">şifre oluşturun</a>
+    </div>
+  </div>
+</div>
 
 <!-- ALERT -->
 <div class="alert-banner" id="ab">
@@ -369,34 +530,94 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
   </div>
 </div>
 
-<nav>
-  <div style="display:flex;align-items:center;gap:10px">
-    <div class="logo">
-      <div class="logo-mark">📈</div>
-      Yatırım<span>Takip</span>
+<!-- APP LAYOUT -->
+<div class="app-layout" id="app-layout" style="display:none">
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sb-inner">
+    <div class="sb-head">
+      <div class="sb-logo-mark">📈</div>
+      <div class="sb-logo-text">Yatırım<span>Takip</span></div>
     </div>
-    <div class="live-badge" id="live-badge" style="display:none"><div class="live-dot"></div>CANLI</div>
-    <div class="price-status" id="price-status"></div>
+
+    <nav class="sb-nav">
+      <div class="sb-section">Ana</div>
+      <button class="sb-item active" data-page="dashboard" data-tip-sb="Portföy" onclick="showPage('dashboard',this)">
+        <span class="sb-item-icon">📊</span><span class="sb-item-label">Portföy</span>
+      </button>
+      <button class="sb-item" data-page="calendar" data-tip-sb="Takvim" onclick="showPage('calendar',this)">
+        <span class="sb-item-icon">📅</span><span class="sb-item-label">Takvim</span>
+      </button>
+
+      <div class="sb-section">Yatırımlar</div>
+      <button class="sb-item" data-page="stocks" data-tip-sb="Hisseler" onclick="showPage('stocks',this)">
+        <span class="sb-item-icon">🏦</span><span class="sb-item-label">Hisseler</span>
+      </button>
+      <button class="sb-item" data-page="funds" data-tip-sb="Fonlar" onclick="showPage('funds',this)">
+        <span class="sb-item-icon">📦</span><span class="sb-item-label">Fonlar</span>
+      </button>
+      <button class="sb-item" data-page="insights" data-tip-sb="Keşfet" onclick="showPage('insights',this)">
+        <span class="sb-item-icon">💡</span><span class="sb-item-label">Keşfet</span>
+      </button>
+
+      <div class="sb-section">Finans</div>
+      <button class="sb-item" data-page="wealth" data-tip-sb="Servet" onclick="showPage('wealth',this)">
+        <span class="sb-item-icon">⚖️</span><span class="sb-item-label">Servet</span>
+      </button>
+      <button class="sb-item" data-page="cashflow" data-tip-sb="Gelir/Gider" onclick="showPage('cashflow',this)">
+        <span class="sb-item-icon">💸</span><span class="sb-item-label">Gelir / Gider</span>
+      </button>
+      <button class="sb-item" data-page="projection" data-tip-sb="Projeksiyon" onclick="showPage('projection',this)">
+        <span class="sb-item-icon">🔮</span><span class="sb-item-label">Projeksiyon</span>
+      </button>
+      <button class="sb-item" data-page="bes" data-tip-sb="BES" onclick="showPage('bes',this)">
+        <span class="sb-item-icon">🏦</span><span class="sb-item-label">BES</span>
+      </button>
+
+      <div class="sb-section">Araçlar</div>
+      <button class="sb-item" data-page="analysis" data-tip-sb="Analiz" onclick="showPage('analysis',this)">
+        <span class="sb-item-icon">🔬</span><span class="sb-item-label">Analiz</span>
+      </button>
+      <button class="sb-item" data-page="notes" data-tip-sb="Notlar" onclick="showPage('notes',this)">
+        <span class="sb-item-icon">📝</span><span class="sb-item-label">Notlar</span>
+      </button>
+      <button class="sb-item" data-page="settings" data-tip-sb="Ayarlar" onclick="showPage('settings',this)">
+        <span class="sb-item-icon">⚙️</span><span class="sb-item-label">Ayarlar</span>
+      </button>
+    </nav>
+
+    <div class="sb-foot">
+      <div class="sb-theme-row">
+        <span class="sb-theme-lbl">Tema</span>
+        <button class="sb-tbtn active" data-t="ocean" title="Gece Okyanusu" onclick="setTheme('ocean',this)"></button>
+        <button class="sb-tbtn" data-t="amber" title="Amber Gün" onclick="setTheme('amber',this)"></button>
+        <button class="sb-tbtn" data-t="purple" title="Gece Moru" onclick="setTheme('purple',this)"></button>
+        <button class="sb-tbtn" data-t="light" title="Açık Tema" onclick="setTheme('light',this)"></button>
+      </div>
+      <div class="sb-user" onclick="lockApp()" title="Kilitle">
+        <div class="sb-avatar" id="sb-avatar-text">YT</div>
+        <div class="sb-user-info">
+          <div class="sb-user-name">Yatırımcı</div>
+          <div class="sb-user-sub">Şifreli oturum</div>
+        </div>
+        <span class="sb-lock-icon">🔒</span>
+      </div>
+    </div>
   </div>
-  <div style="display:flex;align-items:center;gap:10px">
-    <div class="theme-switcher">
-      <span class="theme-lbl">Tema</span>
-      <button class="tbtn active" data-t="ocean" title="Gece Okyanusu" onclick="setTheme('ocean',this)"></button>
-      <button class="tbtn" data-t="amber" title="Amber Gün" onclick="setTheme('amber',this)"></button>
-      <button class="tbtn" data-t="purple" title="Gece Moru" onclick="setTheme('purple',this)"></button>
-    </div>
-    <div class="tabs">
-      <button class="tab active" onclick="showPage('dashboard',this)">📊 Portföy</button>
-      <button class="tab" onclick="showPage('stocks',this)">🏦 Hisseler</button>
-      <button class="tab" onclick="showPage('funds',this)">📦 Fonlar</button>
-      <button class="tab" onclick="showPage('calendar',this)">📅 Takvim</button>
-      <button class="tab" onclick="showPage('analysis',this)">🔬 Analiz</button>
-      <button class="tab" onclick="showPage('insights',this)">💡 Keşfet</button>
-      <button class="tab" onclick="showPage('notes',this)">📝 Notlar</button>
-      <button class="tab" onclick="showPage('settings',this)">⚙️ Ayarlar</button>
-    </div>
-  </div>
-</nav>
+</div>
+
+<!-- TOGGLE BUTTON -->
+<div class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()" title="Sidebar aç/kapat">◀</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content" id="main-content">
+
+<!-- live badge -->
+<div style="position:fixed;top:14px;right:20px;z-index:150;display:flex;align-items:center;gap:8px">
+  <div class="live-badge" id="live-badge" style="display:none"><div class="live-dot"></div>CANLI</div>
+  <div class="price-status" id="price-status"></div>
+</div>
 
 <!-- ═══════════ DASHBOARD ═══════════ -->
 <div id="p-dashboard" class="page active">
@@ -429,6 +650,8 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
       <div class="stat-chip"><div class="stat-chip-lbl">Fon Güncel Değer</div><div class="stat-chip-val mo" id="k-fund-val">₺0</div></div>
       <div class="stat-chip"><div class="stat-chip-lbl">Toplam Portföy</div><div class="stat-chip-val mo pos" id="k-total-val">₺0</div></div>
     </div>
+    <!-- FİNANS ÖZET WİDGET -->
+    <div id="dash-net-widget" style="margin-bottom:20px"></div>
 
     <!-- DÖVİZ SATIRI -->
     <div id="currency-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
@@ -950,6 +1173,179 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
   </div>
 </div>
 
+<!-- ═══════════ SERVET / FİNANS (unified) ═══════════ -->
+<div id="p-wealth" class="page">
+  <div class="wrap">
+    <div class="pg-header">
+      <div>
+        <div class="pg-title">Servet & <span>Finans</span></div>
+        <div class="pg-sub">Gelir/Gider dengesi, bilanço ve projeksiyon</div>
+      </div>
+    </div>
+    <div class="wealth-tabs">
+      <button class="wtab active" data-tab="cashflow" onclick="switchWealthTab('cashflow')">💸 Gelir / Gider</button>
+      <button class="wtab" data-tab="balance" onclick="switchWealthTab('balance')">⚖️ Bilanço</button>
+      <button class="wtab" data-tab="projection" onclick="switchWealthTab('projection')">🔮 Projeksiyon</button>
+      <button class="wtab" data-tab="bes" onclick="switchWealthTab('bes')">🏦 BES</button>
+    </div>
+
+    <!-- CASHFLOW -->
+    <div class="finance-section active" id="fs-cashflow">
+      <div id="cf-summary"></div>
+      <div class="income-grid">
+        <div class="finance-card">
+          <div class="fc-head">
+            <div class="fc-title" style="color:var(--green)">💚 Gelirler</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="fc-total pos" id="cf-income-total">₺0</div>
+              <button class="btn bp sm" onclick="openAddFinanceModal('income')">+ Ekle</button>
+            </div>
+          </div>
+          <div class="fc-body" id="cf-income-list"></div>
+        </div>
+        <div class="finance-card">
+          <div class="fc-head">
+            <div class="fc-title" style="color:var(--red)">❤️ Giderler</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="fc-total neg" id="cf-expense-total">₺0</div>
+              <button class="btn bp sm" onclick="openAddFinanceModal('expense')">+ Ekle</button>
+            </div>
+          </div>
+          <div class="fc-body" id="cf-expense-list"></div>
+        </div>
+      </div>
+      <div class="cb">
+        <div class="ch"><div class="ct">Gider <span>Kategori Dağılımı</span></div></div>
+        <div style="position:relative;height:220px"><canvas id="cf-pie"></canvas></div>
+      </div>
+    </div>
+
+    <!-- BALANCE -->
+    <div class="finance-section" id="fs-balance">
+      <div id="nw-val" class="net-worth-banner"></div>
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px">
+        <div>
+          <div class="balance-grid">
+            <div class="balance-side">
+              <div class="bs-head">
+                <div class="bs-title" style="color:var(--green)">🟢 Varlıklar</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="bs-total pos" id="wealth-assets-total">₺0</div>
+                  <button class="btn bp sm" onclick="openAddFinanceModal('asset')">+ Ekle</button>
+                </div>
+              </div>
+              <div class="bs-body" id="wealth-assets-list"></div>
+            </div>
+            <div class="balance-side">
+              <div class="bs-head">
+                <div class="bs-title" style="color:var(--red)">🔴 Yükümlülükler</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="bs-total neg" id="wealth-liab-total">₺0</div>
+                  <button class="btn bp sm" onclick="openAddFinanceModal('liability')">+ Ekle</button>
+                </div>
+              </div>
+              <div class="bs-body" id="wealth-liab-list"></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="health-meter">
+            <div class="klabel">Finansal Sağlık Skoru</div>
+            <div class="health-score" id="health-score-val">—</div>
+            <div class="health-bar"><div class="health-fill" id="health-score-fill" style="width:0%"></div></div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:8px;text-align:center" id="health-score-desc"></div>
+          </div>
+          <div class="cb" id="emergency-fund" style="padding:18px"></div>
+        </div>
+      </div>
+      <div class="cb">
+        <div class="ch"><div class="ct">Varlık <span>Dağılımı</span></div></div>
+        <div style="position:relative;height:220px"><canvas id="wealth-pie"></canvas></div>
+      </div>
+    </div>
+
+    <!-- PROJECTION -->
+    <div class="finance-section" id="fs-projection">
+      <div class="cb" style="margin-bottom:18px">
+        <div class="ch">
+          <div class="ct">Projeksiyon <span>Parametreleri</span></div>
+          <button class="btn bp sm" onclick="renderProjection()">▶ Hesapla</button>
+        </div>
+        <div class="proj-inputs">
+          <div class="fi"><label>Yıllık Enflasyon (%)</label><input type="number" id="pj2-inf" placeholder="35" step="1"></div>
+          <div class="fi"><label>Portföy Getirisi (%/yıl)</label><input type="number" id="pj2-ret" placeholder="15" step="1"></div>
+          <div class="fi"><label>Maaş Artış Oranı (%)</label><input type="number" id="pj2-sal" placeholder="20" step="1"></div>
+          <div class="fi"><label>Süre (Yıl)</label><input type="number" id="pj2-yr" placeholder="10" min="1" max="30"></div>
+        </div>
+        <div class="proj-scenarios">
+          <div class="scenario-card selected" onclick="this.closest('.proj-scenarios').querySelectorAll('.scenario-card').forEach(x=>x.classList.remove('selected'));this.classList.add('selected')">
+            <div class="sc-name" style="color:var(--ac)">🟢 Dengeli</div>
+            <div class="sc-desc">Mevcut tasarruf oranı korunur, ortalama getiri beklenir</div>
+          </div>
+          <div class="scenario-card" onclick="this.closest('.proj-scenarios').querySelectorAll('.scenario-card').forEach(x=>x.classList.remove('selected'));this.classList.add('selected')">
+            <div class="sc-name" style="color:var(--gold)">🟡 Muhafazakar</div>
+            <div class="sc-desc">Daha düşük getiri, tasarruf oranı azalır</div>
+          </div>
+          <div class="scenario-card" onclick="this.closest('.proj-scenarios').querySelectorAll('.scenario-card').forEach(x=>x.classList.remove('selected'));this.classList.add('selected')">
+            <div class="sc-name" style="color:var(--green)">🚀 Agresif</div>
+            <div class="sc-desc">Maksimum tasarruf, yüksek getiri beklentisi</div>
+          </div>
+        </div>
+        <div style="position:relative;height:280px"><canvas id="proj2-chart"></canvas></div>
+        <div id="proj2-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px"></div>
+      </div>
+    </div>
+
+    <!-- BES -->
+    <div class="finance-section" id="fs-bes">
+      <div class="pg-header" style="margin-bottom:16px">
+        <div></div>
+        <div style="display:flex;gap:8px">
+          <div id="bes-kpi-row" style="display:flex;gap:10px;flex-wrap:wrap">
+            <div class="stat-chip"><div class="stat-chip-lbl">Toplam Katkı</div><div class="stat-chip-val mo" id="bes-total-contrib">₺0</div></div>
+            <div class="stat-chip"><div class="stat-chip-lbl">Devlet Katkısı</div><div class="stat-chip-val mo pos" id="bes-total-state">₺0</div></div>
+            <div class="stat-chip"><div class="stat-chip-lbl">Güncel Değer</div><div class="stat-chip-val mo" id="bes-total-val">₺0</div></div>
+          </div>
+          <button class="btn bp" onclick="openAddBES()">+ BES Ekle</button>
+        </div>
+      </div>
+      <div id="bes-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CASHFLOW page alias -->
+<div id="p-cashflow" class="page">
+  <div class="wrap">
+    <div class="pg-header"><div><div class="pg-title">Gelir / <span>Gider</span></div><div class="pg-sub">Aylık nakit akışı takibi</div></div></div>
+    <div style="text-align:center;padding:40px;color:var(--muted)">
+      <div style="font-size:2rem;margin-bottom:10px">💸</div>
+      <div style="font-size:.9rem">Yükleniyor...</div>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECTION page alias -->
+<div id="p-projection" class="page">
+  <div class="wrap">
+    <div class="pg-header"><div><div class="pg-title">Projeksiyon & <span>Güç Analizi</span></div><div class="pg-sub">İleriye dönük finansal projeksiyon</div></div></div>
+    <div style="text-align:center;padding:40px;color:var(--muted)">
+      <div style="font-size:2rem;margin-bottom:10px">🔮</div>
+      <div style="font-size:.9rem">Yükleniyor...</div>
+    </div>
+  </div>
+</div>
+
+<!-- BES page alias -->
+<div id="p-bes" class="page">
+  <div class="wrap">
+    <div style="text-align:center;padding:40px;color:var(--muted)">
+      <div style="font-size:2rem;margin-bottom:10px">🏦</div>
+      <div style="font-size:.9rem">Yükleniyor...</div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ MODALS ═══ -->
 <div class="ov" id="m-add">
   <div class="modal">
@@ -1131,6 +1527,42 @@ th.sortable.asc .sort-icon,th.sortable.desc .sort-icon{opacity:1;color:var(--ac)
   </div>
 </div>
 
+<!-- FINANCE ITEM MODAL -->
+<div class="ov" id="m-finance-item">
+  <div class="modal">
+    <div class="mt" id="fin-modal-title">Kalem Ekle</div>
+    <input type="hidden" id="fin-modal-type" value="income">
+    <input type="hidden" id="fin-item-id" value="">
+    <div class="fg">
+      <div class="fi full"><label>Adı *</label><input type="text" id="fin-item-name" placeholder="Örn: Oyun parası, Netflix..."></div>
+      <div class="fi"><label>Tutar (₺/ay) *</label><input type="number" id="fin-item-amount" placeholder="0" step="1"></div>
+      <div class="fi"><label>Kategori</label><select id="fin-item-cat"></select></div>
+      <div class="fi" id="fin-repeat-row"><label>Tekrar</label><select id="fin-item-repeat"><option value="monthly">Aylık</option><option value="yearly">Yıllık</option><option value="once">Tek Seferlik</option></select></div>
+      <div class="fi" id="fin-monthly-row" style="display:none"><label>Aylık Taksit (₺)</label><input type="number" id="fin-item-monthly" placeholder="0" step="1"></div>
+      <div class="fi full"><label>Not</label><input type="text" id="fin-item-note" placeholder="Opsiyonel açıklama..."></div>
+    </div>
+    <div class="ma"><button class="btn bg2" onclick="closeModal('m-finance-item')">İptal</button><button class="btn bp" onclick="saveFinanceItem()">Kaydet</button></div>
+  </div>
+</div>
+
+<!-- BES MODAL -->
+<div class="ov" id="m-bes">
+  <div class="modal">
+    <div class="mt" id="bes-modal-title">BES Hesabı Ekle</div>
+    <input type="hidden" id="bes-item-id" value="">
+    <div class="fg">
+      <div class="fi full"><label>Şirket Adı *</label><input type="text" id="bes-company" placeholder="Örn: Anadolu Hayat Emeklilik"></div>
+      <div class="fi"><label>Başlangıç Tarihi *</label><input type="date" id="bes-start"></div>
+      <div class="fi"><label>Aylık Katkı (₺)</label><input type="number" id="bes-contrib" placeholder="500" step="1"></div>
+      <div class="fi"><label>Güncel Değer (₺)</label><input type="number" id="bes-curval" placeholder="0" step="1"></div>
+      <div class="fi"><label>Doğum Yılı</label><input type="number" id="bes-birthyear" placeholder="1990" min="1940" max="2005"></div>
+      <div class="fi"><label>Emeklilik Yaşı</label><input type="number" id="bes-retireage" placeholder="56" min="45" max="70"></div>
+      <div class="fi full"><label>Yıllık Tahmini Getiri (%)</label><input type="number" id="bes-return" placeholder="12" step="0.5"></div>
+    </div>
+    <div class="ma"><button class="btn bg2" onclick="closeModal('m-bes')">İptal</button><button class="btn bp" onclick="saveBES()">Kaydet</button></div>
+  </div>
+</div>
+
 <script>
 // ── Fon Pozisyon Hesaplama (erken tanım) ──
 function getFundTxSide(lot){return lot?.side==='sell'?'sell':'buy';}
@@ -1145,7 +1577,7 @@ function calcFundPosition(fund){
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
-let S={stocks:[],dividends:[],notes:[],settings:{},prices:{},funds:[],fundDistributions:[]};
+let S={stocks:[],dividends:[],notes:[],settings:{},prices:{},funds:[],fundDistributions:[],finance:null};
 let divChart=null,projChart=null,donutChart=null;
 let divChartMode='monthly',calView='cards';
 
@@ -1171,8 +1603,8 @@ function saveToFile(){ exportAll(); }
 // ══════════════════════════════════════════════
 function setTheme(t,btn){
   document.documentElement.setAttribute('data-theme',t);
-  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
-  (btn||document.querySelector(`.tbtn[data-t="${t}"]`))?.classList.add('active');
+  document.querySelectorAll('.tbtn,.sb-tbtn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll(`.tbtn[data-t="${t}"],.sb-tbtn[data-t="${t}"]`).forEach(b=>b.classList.add('active'));
   S.settings=S.settings||{};S.settings.theme=t;save();
   setTimeout(()=>{if(divChart)renderDivChart();if(donutChart)renderDonut();},50);
 }
@@ -1287,16 +1719,32 @@ async function loadMilliyetPrices(){ return Object.keys(_pCache).length>0; }
 // NAV
 // ══════════════════════════════════════════════
 function showPage(id,btn){
+  // Finance sub-pages redirect to wealth page with correct tab
+  const financeTabMap={cashflow:'cashflow',projection:'projection',bes:'bes'};
+  if(financeTabMap[id]){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.sb-item').forEach(t=>t.classList.remove('active'));
+    const pg=document.getElementById('p-wealth');
+    if(pg) pg.classList.add('active');
+    const sbBtn=btn||document.querySelector(`.sb-item[data-page="${id}"]`);
+    if(sbBtn) sbBtn.classList.add('active');
+    renderAll();
+    setTimeout(()=>switchWealthTab(financeTabMap[id]),50);
+    return;
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('p-'+id).classList.add('active');
-  if(btn)btn.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(t=>t.classList.remove('active'));
+  const pg=document.getElementById('p-'+id);
+  if(pg) pg.classList.add('active');
+  const sbBtn=btn||document.querySelector(`.sb-item[data-page="${id}"]`);
+  if(sbBtn) sbBtn.classList.add('active');
   renderAll();
   if(id==='settings') setTimeout(loadApiKey,50);
+  if(id==='wealth') setTimeout(()=>switchWealthTab('cashflow'),50);
 }
 function switchToTab(id){
-  const map={dashboard:0,stocks:1,funds:2,calendar:3,analysis:4,insights:5,notes:6,settings:7};
-  showPage(id,document.querySelectorAll('.tab')[map[id]]);
+  const sbBtn=document.querySelector(`.sb-item[data-page="${id}"]`);
+  showPage(id,sbBtn);
 }
 
 // ══════════════════════════════════════════════
@@ -1484,7 +1932,24 @@ function delNote(id){S.notes=S.notes.filter(n=>n.id!==id);save();renderNotes();}
 // ══════════════════════════════════════════════
 // RENDER ALL
 // ══════════════════════════════════════════════
-function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();if(typeof renderCompare==='function')renderCompare();if(typeof renderFundCompare==='function')renderFundCompare();if(typeof checkAlerts==='function')checkAlerts();if(typeof fillCmpSels==='function')fillCmpSels();if(typeof fillFundCmpSels==='function')fillFundCmpSels();if(typeof fillNoteTickerList==='function')fillNoteTickerList();if(typeof updateCurrencyUI==='function')updateCurrencyUI();if(typeof renderFunds==='function')renderFunds();}
+function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();if(typeof renderCompare==='function')renderCompare();if(typeof renderFundCompare==='function')renderFundCompare();if(typeof checkAlerts==='function')checkAlerts();if(typeof fillCmpSels==='function')fillCmpSels();if(typeof fillFundCmpSels==='function')fillFundCmpSels();if(typeof fillNoteTickerList==='function')fillNoteTickerList();if(typeof updateCurrencyUI==='function')updateCurrencyUI();if(typeof renderFunds==='function')renderFunds();
+// Finance pages — only re-render the active finance tab
+const activeFinTab=document.querySelector('.wtab.active');
+if(activeFinTab){const t=activeFinTab.dataset.tab;if(t==='cashflow')renderCashflow();else if(t==='balance')renderWealth();else if(t==='projection')renderProjection();else if(t==='bes')renderBES();}
+// Dashboard net flow widget
+renderDashboardNetWidget();
+}
+function renderDashboardNetWidget(){
+  const el=document.getElementById('dash-net-widget');
+  if(!el)return;
+  const net=getTotalIncome()-getTotalExpense();
+  const score=getFinancialHealthScore();
+  el.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap">
+    <div class="stat-chip"><div class="stat-chip-lbl">Bu Ay Net</div><div class="stat-chip-val mo ${net>=0?'pos':''}" style="color:${net>=0?'var(--green)':'var(--red)'}">${fmt(net)}</div></div>
+    <div class="stat-chip"><div class="stat-chip-lbl">Net Değer</div><div class="stat-chip-val mo">${fmt(getNetWorth())}</div></div>
+    <div class="stat-chip"><div class="stat-chip-lbl">Fin. Sağlık</div><div class="stat-chip-val mo">${score}<span style="font-size:.7rem;color:var(--muted)">/100</span></div></div>
+  </div>`;
+}
 
 // ══════════════════════════════════════════════
 // THEME COLORS
@@ -2193,6 +2658,16 @@ function renderProjection(){
 // SETTINGS
 // ══════════════════════════════════════════════
 function loadSettings(){
+  // Restore sidebar collapsed state
+  if(S.settings?.sidebarCollapsed){
+    const sb=document.getElementById('sidebar');
+    const mc=document.getElementById('main-content');
+    const tog=document.getElementById('sb-toggle');
+    if(sb){sb.classList.add('collapsed');}
+    if(mc){mc.classList.add('expanded');}
+    if(tog){tog.classList.add('collapsed');tog.textContent='▶';}
+    _sidebarCollapsed=true;
+  }
   const s=S.settings||{};
   ['g-annual','g-monthly','g-port','g-yield'].forEach(id=>{const e=document.getElementById(id);if(e&&s[id])e.value=s[id];});
   const rd=document.getElementById('remind-days');if(rd&&s['remind-days'])rd.value=s['remind-days'];
@@ -4727,9 +5202,635 @@ function parseImportFundsCSV(text){
 // İlk yükleme
 if(!S.funds)S.funds=[];
 if(!S.fundDistributions)S.fundDistributions=[];
+// Finance init runs here (after load) — check is already "if(!S.finance)"
 const _fif=document.getElementById('fund-import-file');
 if(_fif&&!_fif._bound){_fif._bound=true;_fif.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{parseImportFundsCSV(ev.target.result);}catch(err){alert(err.message);}e.target.value='';};r.readAsText(f,'UTF-8');});}
 renderFunds();
+
+// ══════════════════════════════════════════════
+// LOCK / UNLOCK SYSTEM
+// ══════════════════════════════════════════════
+const LOCK_KEY='tt_lock_hash';
+const LOCK_TS_KEY='tt_lock_ts';
+const LOCK_TIMEOUT=15*60*1000; // 15 dakika
+
+async function hashPwd(pwd){
+  const enc=new TextEncoder().encode(pwd+'YatirimTakip_salt_2025');
+  const buf=await crypto.subtle.digest('SHA-256',enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function setupLock(){
+  const pwd=document.getElementById('lock-pwd').value;
+  if(pwd.length<8){document.getElementById('lock-err').textContent='Şifre 8 karakter olmalıdır.';return;}
+  const h=await hashPwd(pwd);
+  localStorage.setItem(LOCK_KEY,h);
+  localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
+  document.getElementById('lock-screen').style.display='none';
+  document.getElementById('app-layout').style.display='flex';
+  document.getElementById('lock-err').textContent='';
+}
+
+async function unlockApp(){
+  const pwd=document.getElementById('lock-pwd').value;
+  const stored=localStorage.getItem(LOCK_KEY);
+  if(!stored){
+    await setupLock();
+    return;
+  }
+  if(!pwd){document.getElementById('lock-err').textContent='Şifre giriniz.';return;}
+  const h=await hashPwd(pwd);
+  if(h===stored){
+    localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('app-layout').style.display='flex';
+    document.getElementById('lock-err').textContent='';
+    document.getElementById('lock-pwd').value='';
+  } else {
+    document.getElementById('lock-err').textContent='Yanlış şifre. Tekrar deneyin.';
+    document.getElementById('lock-pwd').value='';
+    document.getElementById('lock-pwd').focus();
+  }
+}
+
+function lockApp(){
+  localStorage.setItem(LOCK_TS_KEY,'0');
+  document.getElementById('app-layout').style.display='none';
+  document.getElementById('lock-screen').style.display='flex';
+  document.getElementById('lock-pwd').value='';
+  document.getElementById('lock-err').textContent='';
+}
+
+function showLockSetup(){
+  document.getElementById('lock-sub-text').textContent='İlk kullanım: 8 karakterli şifre belirleyin';
+  document.getElementById('lock-setup-hint').style.display='none';
+  document.getElementById('lock-pwd').focus();
+}
+
+// Auto-lock on inactivity
+let _lastActivity=Date.now();
+['click','keydown','mousemove','touchstart'].forEach(ev=>
+  document.addEventListener(ev,()=>{
+    _lastActivity=Date.now();
+    localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
+  })
+);
+setInterval(()=>{
+  const stored=localStorage.getItem(LOCK_KEY);
+  if(!stored)return;
+  const appVisible=document.getElementById('app-layout').style.display!=='none';
+  if(!appVisible)return;
+  if(Date.now()-_lastActivity>LOCK_TIMEOUT) lockApp();
+},30000);
+
+// Init lock check
+(function initLockCheck(){
+  const stored=localStorage.getItem(LOCK_KEY);
+  const ts=parseInt(localStorage.getItem(LOCK_TS_KEY)||'0');
+  if(!stored){
+    // First use — show setup prompt
+    document.getElementById('lock-sub-text').textContent='İlk kullanım: 8 karakterli şifre belirleyin';
+    document.getElementById('lock-setup-hint').style.display='block';
+    document.getElementById('lock-screen').style.display='flex';
+    document.getElementById('app-layout').style.display='none';
+  } else if(Date.now()-ts<LOCK_TIMEOUT){
+    // Recent session
+    document.getElementById('lock-screen').style.display='none';
+    document.getElementById('app-layout').style.display='flex';
+    localStorage.setItem(LOCK_TS_KEY,Date.now().toString());
+  } else {
+    document.getElementById('lock-screen').style.display='flex';
+    document.getElementById('app-layout').style.display='none';
+  }
+  document.getElementById('lock-pwd').focus();
+})();
+
+// ══════════════════════════════════════════════
+// SIDEBAR TOGGLE
+// ══════════════════════════════════════════════
+let _sidebarCollapsed=false;
+function toggleSidebar(){
+  _sidebarCollapsed=!_sidebarCollapsed;
+  const sb=document.getElementById('sidebar');
+  const mc=document.getElementById('main-content');
+  const tog=document.getElementById('sb-toggle');
+  sb.classList.toggle('collapsed',_sidebarCollapsed);
+  mc.classList.toggle('expanded',_sidebarCollapsed);
+  tog.classList.toggle('collapsed',_sidebarCollapsed);
+  tog.textContent=_sidebarCollapsed?'▶':'◀';
+  S.settings=S.settings||{};
+  S.settings.sidebarCollapsed=_sidebarCollapsed;
+  save();
+}
+
+// ══════════════════════════════════════════════
+// SERVET / GELİR-GİDER / PROJEKSİYON / BES
+// ══════════════════════════════════════════════
+
+// ─── DATA INIT ───
+if(!S.finance) S.finance={
+  incomes:[
+    {id:1,name:'Maaş',amount:0,category:'Maaş',repeat:'monthly',auto:false,note:''},
+    {id:2,name:'Kira Geliri',amount:0,category:'Kira',repeat:'monthly',auto:false,note:''},
+  ],
+  expenses:[
+    {id:1,name:'Kira / Aidat',amount:0,category:'Konut',repeat:'monthly',auto:false,note:''},
+    {id:2,name:'Elektrik / Su / Doğalgaz',amount:0,category:'Faturalar',repeat:'monthly',auto:false,note:''},
+    {id:3,name:'Market',amount:0,category:'Market & Yiyecek',repeat:'monthly',auto:false,note:''},
+    {id:4,name:'İnternet / Telefon',amount:0,category:'Abonelikler',repeat:'monthly',auto:false,note:''},
+    {id:5,name:'Ulaşım',amount:0,category:'Ulaşım',repeat:'monthly',auto:false,note:''},
+  ],
+  assets:[
+    {id:1,name:'Nakit / Banka',amount:0,category:'Nakit',note:''},
+    {id:2,name:'Gayrimenkul',amount:0,category:'Gayrimenkul',note:''},
+    {id:3,name:'Araç',amount:0,category:'Araç',note:''},
+  ],
+  liabilities:[
+    {id:1,name:'Konut Kredisi',amount:0,monthly:0,category:'Konut Kredisi',note:''},
+    {id:2,name:'Araç Kredisi',amount:0,monthly:0,category:'Araç Kredisi',note:''},
+    {id:3,name:'Kredi Kartı Borcu',amount:0,monthly:0,category:'Kredi Kartı',note:''},
+  ],
+  bes:[],
+  projParams:{inflation:35,portfolioReturn:15,salaryIncrease:20,years:10,scenario:'balanced'},
+  monthlySnapshots:[],
+};
+if(!S.finance.bes) S.finance.bes=[];
+if(!S.finance.projParams) S.finance.projParams={inflation:35,portfolioReturn:15,salaryIncrease:20,years:10,scenario:'balanced'};
+if(!S.finance.monthlySnapshots) S.finance.monthlySnapshots=[];
+
+const EXPENSE_CATS=['Konut','Faturalar','Market & Yiyecek','Ulaşım','Abonelikler','Sağlık','Eğitim','Eğlence','Oyun & Dijital','Giyim','Diğer'];
+const INCOME_CATS=['Maaş','Kira','Temettü (Oto)','Faiz','Fon Dağıtımı (Oto)','BES Devlet Katkısı (Oto)','Serbest Meslek','Diğer'];
+const ASSET_CATS=['Nakit','Gayrimenkul','Araç','Diğer Varlık'];
+const LIAB_CATS=['Konut Kredisi','Araç Kredisi','Kredi Kartı','İhtiyaç Kredisi','Diğer Borç'];
+const CAT_COLORS={
+  'Konut':'#ff4560','Faturalar':'#0095ff','Market & Yiyecek':'#00d4aa','Ulaşım':'#f5c518',
+  'Abonelikler':'#a855f7','Sağlık':'#ec4899','Eğitim':'#34d399','Eğlence':'#fb923c',
+  'Oyun & Dijital':'#818cf8','Giyim':'#f472b6','Diğer':'#6b7280',
+  'Maaş':'#00d4aa','Kira':'#0095ff','Temettü (Oto)':'#f5c518','Faiz':'#34d399',
+  'Fon Dağıtımı (Oto)':'#a855f7','BES Devlet Katkısı (Oto)':'#ec4899','Serbest Meslek':'#fb923c',
+  'Nakit':'#00d4aa','Gayrimenkul':'#0095ff','Araç':'#f5c518','Diğer Varlık':'#a855f7',
+  'Konut Kredisi':'#ff4560','Araç Kredisi':'#fb923c','Kredi Kartı':'#ec4899',
+  'İhtiyaç Kredisi':'#f43f5e','Diğer Borç':'#6b7280',
+};
+let _cashflowPieChart=null,_balancePieChart=null,_projChart2=null,_besChart=null;
+
+// Auto incomes from portfolio
+function getAutoIncomes(){
+  const result=[];
+  // Temettü (son 12 ay)
+  const now=new Date(), ayOnceTarih=new Date(now);
+  ayOnceTarih.setMonth(ayOnceTarih.getMonth()-12);
+  const divTotal=(S.dividends||[]).filter(d=>new Date(d.date)>=ayOnceTarih).reduce((a,d)=>a+d.total,0);
+  if(divTotal>0) result.push({name:'Temettü Geliri',amount:divTotal/12,category:'Temettü (Oto)',auto:true,note:'Son 12 ay ortalama'});
+  // Fon dağıtımı (son 12 ay)
+  const fdTotal=(S.fundDistributions||[]).filter(d=>new Date(d.date)>=ayOnceTarih).reduce((a,d)=>a+d.net,0);
+  if(fdTotal>0) result.push({name:'Fon Dağıtımı',amount:fdTotal/12,category:'Fon Dağıtımı (Oto)',auto:true,note:'Son 12 ay ortalama'});
+  // BES devlet katkısı
+  const besTotal=(S.finance.bes||[]).reduce((a,b)=>a+((b.monthlyContrib||0)*0.25),0);
+  if(besTotal>0) result.push({name:'BES Devlet Katkısı',amount:besTotal,category:'BES Devlet Katkısı (Oto)',auto:true,note:'%25 devlet katkısı'});
+  return result;
+}
+
+function getAutoExpenses(){
+  const result=[];
+  // BES katkı payı
+  const besTotal=(S.finance.bes||[]).reduce((a,b)=>a+(b.monthlyContrib||0),0);
+  if(besTotal>0) result.push({name:'BES Katkı Payı',amount:besTotal,category:'Diğer',auto:true,note:'Aylık BES kesintisi'});
+  // Kredi ödemeleri
+  (S.finance.liabilities||[]).forEach(l=>{
+    if(l.monthly>0) result.push({name:l.name+' Taksiti',amount:l.monthly,category:l.category||'Konut Kredisi',auto:true,note:'Kredi taksiti'});
+  });
+  return result;
+}
+
+function getTotalIncome(){
+  const manual=(S.finance.incomes||[]).reduce((a,i)=>a+i.amount,0);
+  const auto=getAutoIncomes().reduce((a,i)=>a+i.amount,0);
+  return manual+auto;
+}
+function getTotalExpense(){
+  const manual=(S.finance.expenses||[]).reduce((a,i)=>a+i.amount,0);
+  const auto=getAutoExpenses().reduce((a,i)=>a+i.amount,0);
+  return manual+auto;
+}
+function getPortfolioAssetValue(){
+  const stocks=calcStockCurrentValue?calcStockCurrentValue():0;
+  const funds=calcFundCurrentValue?calcFundCurrentValue():0;
+  const gold=(S.goldForex||[]).filter(x=>x.type==='gold'||x.type==='silver').reduce((a,x)=>a+(x.curVal||x.amount||0),0);
+  const forex=(S.goldForex||[]).filter(x=>x.type==='usd'||x.type==='eur'||x.type==='forex').reduce((a,x)=>a+(x.curVal||x.amount||0),0);
+  return stocks+funds+gold+forex;
+}
+function getTotalAssets(){
+  const manual=(S.finance.assets||[]).reduce((a,x)=>a+x.amount,0);
+  const portfolio=getPortfolioAssetValue();
+  const bes=(S.finance.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
+  return manual+portfolio+bes;
+}
+function getTotalLiabilities(){
+  return (S.finance.liabilities||[]).reduce((a,x)=>a+x.amount,0);
+}
+function getNetWorth(){return getTotalAssets()-getTotalLiabilities();}
+
+function getFinancialHealthScore(){
+  const income=getTotalIncome();
+  const expense=getTotalExpense();
+  const netWorth=getNetWorth();
+  const liabilities=getTotalLiabilities();
+  if(!income) return 0;
+  let score=0;
+  // Tasarruf oranı (max 30 puan)
+  const savingsRate=income>0?(income-expense)/income:0;
+  score+=Math.max(0,Math.min(30,savingsRate*100));
+  // Borç/Gelir oranı (max 25 puan)
+  const debtRatio=income>0?getTotalLiabilities()/(income*12):0;
+  score+=Math.max(0,25-debtRatio*5);
+  // Net worth pozitif (max 25 puan)
+  if(netWorth>0) score+=Math.min(25,25*(netWorth/(income*12*5)));
+  // Acil fon (max 20 puan)
+  const cashAsset=(S.finance.assets||[]).find(a=>a.category==='Nakit');
+  const cashAmt=cashAsset?cashAsset.amount:0;
+  const emergencyMonths=expense>0?cashAmt/expense:0;
+  score+=Math.min(20,emergencyMonths*3.3);
+  return Math.min(100,Math.round(score));
+}
+
+function renderCashflow(){
+  const incomes=[...(S.finance.incomes||[]),...getAutoIncomes()];
+  const expenses=[...(S.finance.expenses||[]),...getAutoExpenses()];
+  const totalInc=incomes.reduce((a,i)=>a+i.amount,0);
+  const totalExp=expenses.reduce((a,i)=>a+i.amount,0);
+  const net=totalInc-totalExp;
+
+  // Summary bar
+  const sb=document.getElementById('cf-summary');
+  if(sb) sb.innerHTML=`
+    <div class="net-flow-bar">
+      <div class="nf-row">
+        <div class="nf-item"><div class="nf-lbl">Toplam Gelir</div><div class="nf-val pos" style="color:var(--green)">${fmt(totalInc)}</div><div style="font-size:.7rem;color:var(--muted);font-family:var(--fm)">/ ay</div></div>
+        <div style="font-size:2rem;color:var(--muted)">−</div>
+        <div class="nf-item"><div class="nf-lbl">Toplam Gider</div><div class="nf-val" style="color:var(--red)">${fmt(totalExp)}</div><div style="font-size:.7rem;color:var(--muted);font-family:var(--fm)">/ ay</div></div>
+        <div style="font-size:2rem;color:var(--muted)">=</div>
+        <div class="nf-item"><div class="nf-lbl">Net Nakit Akışı</div><div class="nf-val ${net>=0?'pos':''}" style="color:${net>=0?'var(--green)':'var(--red)'}">${fmt(net)}</div><div style="font-size:.7rem;color:var(--muted);font-family:var(--fm)">/ ay</div></div>
+        <div class="nf-item"><div class="nf-lbl">Tasarruf Oranı</div><div class="nf-val" style="color:var(--ac)">${totalInc>0?Math.round((net/totalInc)*100):0}%</div><div style="font-size:.7rem;color:var(--muted);font-family:var(--fm)">aylık</div></div>
+      </div>
+    </div>`;
+
+  // Income table
+  const it=document.getElementById('cf-income-list');
+  if(it) it.innerHTML=incomes.length?incomes.map(i=>`
+    <div class="fi-row">
+      <div class="fi-left">
+        <div class="fi-cat-dot" style="background:${CAT_COLORS[i.category]||'var(--ac)'}"></div>
+        <div>
+          <div class="fi-name">${i.name}</div>
+          <div class="fi-type">${i.category}${i.auto?' · Otomatik':' · '+({monthly:'Aylık',yearly:'Yıllık',once:'Tek Seferlik'}[i.repeat]||'Aylık')}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="fi-amount pos">${fmt(i.amount)}</div>
+        ${!i.auto?`<div class="fi-actions"><button class="btn bg2 sm" onclick="editFinanceItem('income',${i.id})">✏</button><button class="btn bd sm" onclick="delFinanceItem('income',${i.id})">✕</button></div>`:''}
+      </div>
+    </div>`).join(''):'<div style="color:var(--muted);font-size:.8rem;padding:12px 0">Gelir kaydı yok</div>';
+
+  const ith=document.getElementById('cf-income-total');
+  if(ith) ith.textContent=fmt(totalInc);
+
+  // Expense table
+  const et=document.getElementById('cf-expense-list');
+  if(et) et.innerHTML=expenses.length?expenses.map(i=>`
+    <div class="fi-row">
+      <div class="fi-left">
+        <div class="fi-cat-dot" style="background:${CAT_COLORS[i.category]||'var(--red)'}"></div>
+        <div>
+          <div class="fi-name">${i.name}</div>
+          <div class="fi-type">${i.category}${i.auto?' · Otomatik':' · '+({monthly:'Aylık',yearly:'Yıllık',once:'Tek Seferlik'}[i.repeat]||'Aylık')}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="fi-amount neg">${fmt(i.amount)}</div>
+        ${!i.auto?`<div class="fi-actions"><button class="btn bg2 sm" onclick="editFinanceItem('expense',${i.id})">✏</button><button class="btn bd sm" onclick="delFinanceItem('expense',${i.id})">✕</button></div>`:''}
+      </div>
+    </div>`).join(''):'<div style="color:var(--muted);font-size:.8rem;padding:12px 0">Gider kaydı yok</div>';
+
+  const eth=document.getElementById('cf-expense-total');
+  if(eth) eth.textContent=fmt(totalExp);
+
+  // Pie chart — expenses by category
+  const expByCat={};
+  expenses.forEach(e=>{expByCat[e.category]=(expByCat[e.category]||0)+e.amount;});
+  const expLabels=Object.keys(expByCat).filter(k=>expByCat[k]>0);
+  const expVals=expLabels.map(k=>expByCat[k]);
+  const expColors=expLabels.map(k=>CAT_COLORS[k]||'#888');
+  const canvas=document.getElementById('cf-pie');
+  if(canvas){
+    if(_cashflowPieChart){_cashflowPieChart.destroy();_cashflowPieChart=null;}
+    if(expVals.length) _cashflowPieChart=new Chart(canvas,{type:'doughnut',data:{labels:expLabels,datasets:[{data:expVals,backgroundColor:expColors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:tc().tick,font:{size:10},boxWidth:10}}}}});
+  }
+}
+
+function renderWealth(){
+  const totalA=getTotalAssets();
+  const totalL=getTotalLiabilities();
+  const nw=totalA-totalL;
+  const portfolio=getPortfolioAssetValue();
+  const bes=(S.finance.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
+
+  const nwEl=document.getElementById('nw-val');
+  if(nwEl) nwEl.innerHTML=`<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;font-family:var(--fm);text-transform:uppercase;letter-spacing:1px">Net Değer</div><div class="nw-val ${nw>=0?'pos':''}" style="color:${nw>=0?'var(--green)':'var(--red)'}">${fmt(nw)}</div><div style="font-size:.78rem;color:var(--muted);margin-top:6px">Varlık ${fmt(totalA)} — Borç ${fmt(totalL)}</div>`;
+
+  // Assets
+  const assets=[
+    ...( portfolio>0?[{name:'Yatırım Portföyü',amount:portfolio,category:'Portföy (Oto)',auto:true}]:[]),
+    ...(bes>0?[{name:'BES Birikimi',amount:bes,category:'BES (Oto)',auto:true}]:[]),
+    ...(S.finance.assets||[])
+  ];
+  const al=document.getElementById('wealth-assets-list');
+  if(al) al.innerHTML=assets.map(a=>`
+    <div class="bs-row">
+      <div style="display:flex;align-items:center;gap:8px;flex:1">
+        <div class="fi-cat-dot" style="background:${CAT_COLORS[a.category]||'var(--ac)'}"></div>
+        <div><div style="font-size:.8rem;font-weight:600">${a.name}</div><div style="font-size:.62rem;color:var(--muted)">${a.category}${a.auto?' · Oto':''}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:.85rem;font-weight:700;font-family:var(--fm);color:var(--green)">${fmt(a.amount)}</div>
+        ${!a.auto?`<div class="fi-actions" style="opacity:1"><button class="btn bg2 sm" onclick="editFinanceItem('asset',${a.id})">✏</button><button class="btn bd sm" onclick="delFinanceItem('asset',${a.id})">✕</button></div>`:''}
+      </div>
+    </div>`).join('')||'<div style="color:var(--muted);font-size:.8rem">Varlık yok</div>';
+
+  const atEl=document.getElementById('wealth-assets-total');
+  if(atEl) atEl.textContent=fmt(totalA);
+
+  // Liabilities
+  const ll=document.getElementById('wealth-liab-list');
+  if(ll) ll.innerHTML=(S.finance.liabilities||[]).map(l=>`
+    <div class="bs-row">
+      <div style="display:flex;align-items:center;gap:8px;flex:1">
+        <div class="fi-cat-dot" style="background:${CAT_COLORS[l.category]||'var(--red)'}"></div>
+        <div><div style="font-size:.8rem;font-weight:600">${l.name}</div><div style="font-size:.62rem;color:var(--muted)">${l.category}${l.monthly>0?' · ₺'+l.monthly+'/ay':''}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:.85rem;font-weight:700;font-family:var(--fm);color:var(--red)">${fmt(l.amount)}</div>
+        <div class="fi-actions" style="opacity:1"><button class="btn bg2 sm" onclick="editFinanceItem('liability',${l.id})">✏</button><button class="btn bd sm" onclick="delFinanceItem('liability',${l.id})">✕</button></div>
+      </div>
+    </div>`).join('')||'<div style="color:var(--muted);font-size:.8rem">Borç yok</div>';
+
+  const ltEl=document.getElementById('wealth-liab-total');
+  if(ltEl) ltEl.textContent=fmt(totalL);
+
+  // Balance pie
+  const bCanvas=document.getElementById('wealth-pie');
+  if(bCanvas){
+    if(_balancePieChart){_balancePieChart.destroy();_balancePieChart=null;}
+    const byCat={};
+    assets.forEach(a=>{byCat[a.category]=(byCat[a.category]||0)+a.amount;});
+    const bLabels=Object.keys(byCat).filter(k=>byCat[k]>0);
+    const bVals=bLabels.map(k=>byCat[k]);
+    const bColors=bLabels.map(k=>CAT_COLORS[k]||'var(--ac)');
+    if(bVals.length) _balancePieChart=new Chart(bCanvas,{type:'doughnut',data:{labels:bLabels,datasets:[{data:bVals,backgroundColor:bColors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:tc().tick,font:{size:10},boxWidth:10}}}}});
+  }
+
+  // Health score
+  const score=getFinancialHealthScore();
+  const scoreEl=document.getElementById('health-score-val');
+  if(scoreEl) scoreEl.textContent=score;
+  const fillEl=document.getElementById('health-score-fill');
+  if(fillEl){
+    fillEl.style.width=score+'%';
+    fillEl.style.background=score>=70?'var(--green)':score>=40?'var(--gold)':'var(--red)';
+  }
+  const scoreDesc=document.getElementById('health-score-desc');
+  if(scoreDesc) scoreDesc.textContent=score>=70?'Finansal sağlık iyi durumda 💪':score>=40?'Orta düzey — geliştirme alanı var ⚠️':'Dikkat — finansal dayanıklılık düşük 🔴';
+
+  // Emergency fund
+  const cashAsset=(S.finance.assets||[]).find(a=>a.category==='Nakit');
+  const cashAmt=cashAsset?cashAsset.amount:0;
+  const monthlyExp=getTotalExpense();
+  const emMonths=monthlyExp>0?cashAmt/monthlyExp:0;
+  const emEl=document.getElementById('emergency-fund');
+  if(emEl) emEl.innerHTML=`<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px">Acil Fon Yeterliliği</div><div style="font-size:1.6rem;font-weight:800;font-family:var(--fm);color:${emMonths>=6?'var(--green)':emMonths>=3?'var(--gold)':'var(--red)'}">${emMonths.toFixed(1)} ay</div><div style="font-size:.72rem;color:var(--muted);margin-top:4px">Hedef: 6 ay · Nakit: ${fmt(cashAmt)}</div><div class="prog-bar" style="margin-top:10px"><div class="prog-fill ${emMonths<3?'danger':''}" style="width:${Math.min(100,emMonths/6*100)}%;background:${emMonths>=6?'var(--green)':emMonths>=3?'var(--gold)':'var(--red)'}"></div></div>`;
+}
+
+function renderProjection(){
+  const p=S.finance.projParams||{};
+  const inflation=parseFloat(document.getElementById('pj2-inf')?.value||p.inflation||35)/100;
+  const portReturn=parseFloat(document.getElementById('pj2-ret')?.value||p.portfolioReturn||15)/100;
+  const salaryGrowth=parseFloat(document.getElementById('pj2-sal')?.value||p.salaryIncrease||20)/100;
+  const years=parseInt(document.getElementById('pj2-yr')?.value||p.years||10);
+  const monthlyNet=getTotalIncome()-getTotalExpense();
+  const currentNW=getNetWorth();
+  const currentPortfolio=getPortfolioAssetValue();
+
+  // Save params
+  S.finance.projParams={inflation:Math.round(inflation*100),portfolioReturn:Math.round(portReturn*100),salaryIncrease:Math.round(salaryGrowth*100),years};
+  save();
+
+  // 3 scenarios
+  const scenarios={
+    conservative:{portR:portReturn*0.6,savR:monthlyNet*0.7,label:'Muhafazakar'},
+    balanced:{portR:portReturn,savR:monthlyNet,label:'Dengeli'},
+    aggressive:{portR:portReturn*1.4,savR:monthlyNet*1.3,label:'Agresif'},
+  };
+  const datasets=[];
+  const labels=Array.from({length:years+1},(_,i)=>i===0?'Bugün':`${i}. Yıl`);
+  const colors=['rgba(0,212,170,.8)','rgba(0,149,255,.8)','rgba(245,197,24,.8)'];
+  let si=0;
+  for(const [key,sc] of Object.entries(scenarios)){
+    const data=[currentNW];
+    let nw=currentNW, port=currentPortfolio, monthlySav=sc.savR;
+    for(let y=1;y<=years;y++){
+      port=port*(1+sc.portR)+monthlySav*12;
+      nw=nw+monthlySav*12+(port-currentPortfolio)*(sc.portR);
+      monthlySav=monthlySav*(1+salaryGrowth);
+      data.push(Math.round(nw));
+    }
+    datasets.push({label:sc.label,data,borderColor:colors[si],backgroundColor:colors[si].replace('.8','.1'),fill:si===0,tension:.3,pointRadius:0,borderWidth:2});
+    si++;
+  }
+
+  const canvas=document.getElementById('proj2-chart');
+  if(canvas){
+    if(_projChart2){_projChart2.destroy();_projChart2=null;}
+    const c=tc();
+    _projChart2=new Chart(canvas,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:c.tick}}},scales:{x:{ticks:{color:c.tick,maxTicksLimit:8}},y:{ticks:{color:c.tick,callback:v=>{if(v>=1e6) return '₺'+(v/1e6).toFixed(1)+'M';if(v>=1e3) return '₺'+(v/1e3).toFixed(0)+'K';return '₺'+v;}}}}}}});
+  }
+
+  // Summary
+  const sumEl=document.getElementById('proj2-summary');
+  if(sumEl){
+    const finalBalanced=datasets[1].data[years];
+    const finalAggressive=datasets[2].data[years];
+    const passiveIncome=finalBalanced*(portReturn)/12;
+    sumEl.innerHTML=`
+      <div class="kcard"><span class="kcard-icon">🎯</span><div class="klabel">Dengeli Senaryo (${years}Y)</div><div class="kval mo">${finalBalanced>=1e6?'₺'+(finalBalanced/1e6).toFixed(2)+'M':fmt(finalBalanced)}</div><div class="ksub">Net değer tahmini</div></div>
+      <div class="kcard"><span class="kcard-icon">🚀</span><div class="klabel">Agresif Senaryo (${years}Y)</div><div class="kval mo">${finalAggressive>=1e6?'₺'+(finalAggressive/1e6).toFixed(2)+'M':fmt(finalAggressive)}</div><div class="ksub">Maksimum tasarruf</div></div>
+      <div class="kcard"><span class="kcard-icon">💰</span><div class="klabel">Aylık Pasif Gelir Tahmini</div><div class="kval mo pos">${fmt(passiveIncome)}</div><div class="ksub">Portföy getirisi</div></div>
+      <div class="kcard"><span class="kcard-icon">📊</span><div class="klabel">Fin. Özgürlük Skoru</div><div class="kval mo">${getTotalIncome()>0?Math.round((getPortfolioAssetValue()*portReturn/12)/getTotalExpense()*100):0}%</div><div class="ksub">Pasif gelir / gider oranı</div></div>`;
+  }
+}
+
+function renderBES(){
+  const besArea=document.getElementById('bes-list');
+  if(!besArea)return;
+  const besList=S.finance.bes||[];
+  if(!besList.length){
+    besArea.innerHTML='<div class="empty"><div class="ei">🏦</div><div class="et">Henüz BES hesabı eklenmedi.<br>Yukarıdan ekleyebilirsiniz.</div></div>';
+    return;
+  }
+  const totalContrib=besList.reduce((a,b)=>a+b.totalContrib,0);
+  const totalState=besList.reduce((a,b)=>a+b.totalStateContrib,0);
+  const totalVal=besList.reduce((a,b)=>a+(b.currentValue||0),0);
+  document.getElementById('bes-total-contrib').textContent=fmt(totalContrib);
+  document.getElementById('bes-total-state').textContent=fmt(totalState);
+  document.getElementById('bes-total-val').textContent=fmt(totalVal);
+
+  besArea.innerHTML=besList.map(b=>{
+    const months=Math.max(0,Math.round((new Date()-new Date(b.startDate))/(1000*60*60*24*30)));
+    const retireDate=b.retireAge?new Date(b.birthYear+b.retireAge,0,1):null;
+    const yearsToRetire=retireDate?Math.max(0,Math.round((retireDate-new Date())/(1000*60*60*24*365))):null;
+    const projectedVal=b.currentValue?b.currentValue*Math.pow(1+(b.annualReturn||12)/100,yearsToRetire||0):0;
+    return `<div class="bes-card">
+      <div class="bes-header">
+        <div><div class="bes-company">${b.company}</div><div style="font-size:.72rem;color:var(--muted)">Başlangıç: ${b.startDate} · ${months} ay</div></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn bg2 sm" onclick="openEditBES(${b.id})">✏ Düzenle</button>
+          <button class="btn bd sm" onclick="delBES(${b.id})">✕</button>
+        </div>
+      </div>
+      <div class="bes-kpis">
+        <div class="kcard"><div class="klabel">Aylık Katkı</div><div class="kval mo" style="font-size:1.1rem">${fmt(b.monthlyContrib)}</div></div>
+        <div class="kcard"><div class="klabel">Devlet Katkısı</div><div class="kval mo pos" style="font-size:1.1rem">${fmt(b.monthlyContrib*0.25)}/ay</div><div class="ksub">Toplam: ${fmt(b.totalStateContrib||0)}</div></div>
+        <div class="kcard"><div class="klabel">Toplam Katkı</div><div class="kval mo" style="font-size:1.1rem">${fmt(b.totalContrib)}</div></div>
+        <div class="kcard"><div class="klabel">Güncel Değer</div><div class="kval mo" style="font-size:1.1rem">${b.currentValue?fmt(b.currentValue):'—'}</div></div>
+      </div>
+      ${yearsToRetire!==null?`<div style="background:var(--sf2);border-radius:10px;padding:12px;margin-top:8px;font-size:.8rem"><span style="color:var(--muted)">Emekliliğe kalan:</span> <strong style="color:var(--ac)">${yearsToRetire} yıl</strong> · <span style="color:var(--muted)">Tahmini birikim:</span> <strong>${projectedVal>1e6?'₺'+(projectedVal/1e6).toFixed(2)+'M':fmt(projectedVal)}</strong> (yıllık ${b.annualReturn||12}% getiri)</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// Finance item CRUD
+let _finItemCounter=Date.now();
+function openAddFinanceModal(type){
+  const titles={income:'Gelir Kalemi Ekle',expense:'Gider Kalemi Ekle',asset:'Varlık Ekle',liability:'Borç / Yükümlülük Ekle'};
+  document.getElementById('fin-modal-title').textContent=titles[type]||'Ekle';
+  document.getElementById('fin-modal-type').value=type;
+  document.getElementById('fin-item-id').value='';
+  document.getElementById('fin-item-name').value='';
+  document.getElementById('fin-item-amount').value='';
+  document.getElementById('fin-item-note').value='';
+  // Category options
+  const catSel=document.getElementById('fin-item-cat');
+  const cats={income:INCOME_CATS,expense:EXPENSE_CATS,asset:ASSET_CATS,liability:LIAB_CATS};
+  catSel.innerHTML=(cats[type]||[]).map(c=>`<option value="${c}">${c}</option>`).join('');
+  // Show/hide monthly payment field
+  const monthlyRow=document.getElementById('fin-monthly-row');
+  if(monthlyRow) monthlyRow.style.display=type==='liability'?'flex':'none';
+  // Repeat field
+  const repeatRow=document.getElementById('fin-repeat-row');
+  if(repeatRow) repeatRow.style.display=(type==='income'||type==='expense')?'flex':'none';
+  openModal('m-finance-item');
+}
+function editFinanceItem(type,id){
+  const lists={income:S.finance.incomes,expense:S.finance.expenses,asset:S.finance.assets,liability:S.finance.liabilities};
+  const item=(lists[type]||[]).find(x=>x.id===id);
+  if(!item)return;
+  openAddFinanceModal(type);
+  document.getElementById('fin-item-id').value=id;
+  document.getElementById('fin-item-name').value=item.name;
+  document.getElementById('fin-item-amount').value=item.amount;
+  document.getElementById('fin-item-note').value=item.note||'';
+  document.getElementById('fin-item-cat').value=item.category||'';
+  if(item.repeat) document.getElementById('fin-item-repeat').value=item.repeat;
+  if(item.monthly!==undefined) document.getElementById('fin-item-monthly').value=item.monthly;
+  document.getElementById('fin-modal-title').textContent='Düzenle';
+}
+function saveFinanceItem(){
+  const type=document.getElementById('fin-modal-type').value;
+  const id=parseInt(document.getElementById('fin-item-id').value)||0;
+  const name=document.getElementById('fin-item-name').value.trim();
+  const amount=parseFloat(document.getElementById('fin-item-amount').value)||0;
+  const category=document.getElementById('fin-item-cat').value;
+  const note=document.getElementById('fin-item-note').value.trim();
+  const repeat=document.getElementById('fin-item-repeat')?.value||'monthly';
+  const monthly=parseFloat(document.getElementById('fin-item-monthly')?.value)||0;
+  if(!name){alert('İsim zorunludur.');return;}
+  const lists={income:S.finance.incomes,expense:S.finance.expenses,asset:S.finance.assets,liability:S.finance.liabilities};
+  const list=lists[type];
+  if(id){const item=list.find(x=>x.id===id);if(item){item.name=name;item.amount=amount;item.category=category;item.note=note;if(item.repeat!==undefined)item.repeat=repeat;if(item.monthly!==undefined)item.monthly=monthly;}}
+  else{const newItem={id:++_finItemCounter,name,amount,category,note};if(type==='income'||type==='expense')newItem.repeat=repeat;if(type==='liability')newItem.monthly=monthly;list.push(newItem);}
+  save();closeModal('m-finance-item');
+  if(type==='income'||type==='expense')renderCashflow();
+  else renderWealth();
+}
+function delFinanceItem(type,id){
+  if(!confirm('Bu kalem silinsin mi?'))return;
+  const lists={income:S.finance.incomes,expense:S.finance.expenses,asset:S.finance.assets,liability:S.finance.liabilities};
+  lists[type]=lists[type].filter(x=>x.id!==id);
+  S.finance[type+'s']=lists[type];
+  save();
+  if(type==='income'||type==='expense')renderCashflow();
+  else renderWealth();
+}
+
+// BES CRUD
+let _besCounter=Date.now()+1;
+function openAddBES(){
+  document.getElementById('bes-modal-title').textContent='BES Hesabı Ekle';
+  ['bes-company','bes-start','bes-contrib','bes-curval','bes-birthyear','bes-retireage','bes-return'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('bes-item-id').value='';
+  document.getElementById('bes-start').value=today();
+  openModal('m-bes');
+}
+function openEditBES(id){
+  const b=(S.finance.bes||[]).find(x=>x.id===id);if(!b)return;
+  document.getElementById('bes-modal-title').textContent='BES Düzenle';
+  document.getElementById('bes-item-id').value=id;
+  document.getElementById('bes-company').value=b.company||'';
+  document.getElementById('bes-start').value=b.startDate||'';
+  document.getElementById('bes-contrib').value=b.monthlyContrib||'';
+  document.getElementById('bes-curval').value=b.currentValue||'';
+  document.getElementById('bes-birthyear').value=b.birthYear||'';
+  document.getElementById('bes-retireage').value=b.retireAge||'56';
+  document.getElementById('bes-return').value=b.annualReturn||'12';
+  openModal('m-bes');
+}
+function saveBES(){
+  const id=parseInt(document.getElementById('bes-item-id').value)||0;
+  const company=document.getElementById('bes-company').value.trim();
+  const startDate=document.getElementById('bes-start').value;
+  const monthlyContrib=parseFloat(document.getElementById('bes-contrib').value)||0;
+  const currentValue=parseFloat(document.getElementById('bes-curval').value)||0;
+  const birthYear=parseInt(document.getElementById('bes-birthyear').value)||0;
+  const retireAge=parseInt(document.getElementById('bes-retireage').value)||56;
+  const annualReturn=parseFloat(document.getElementById('bes-return').value)||12;
+  if(!company||!startDate){alert('Şirket adı ve başlangıç tarihi zorunludur.');return;}
+  const months=Math.max(0,Math.round((new Date()-new Date(startDate))/(1000*60*60*24*30)));
+  const totalContrib=monthlyContrib*months;
+  const totalStateContrib=totalContrib*0.25;
+  if(!S.finance.bes)S.finance.bes=[];
+  if(id){const b=S.finance.bes.find(x=>x.id===id);if(b){Object.assign(b,{company,startDate,monthlyContrib,currentValue,birthYear,retireAge,annualReturn,totalContrib,totalStateContrib});}}
+  else{S.finance.bes.push({id:++_besCounter,company,startDate,monthlyContrib,currentValue,birthYear,retireAge,annualReturn,totalContrib,totalStateContrib});}
+  save();closeModal('m-bes');renderBES();
+}
+function delBES(id){
+  if(!confirm('BES hesabı silinsin mi?'))return;
+  S.finance.bes=(S.finance.bes||[]).filter(x=>x.id!==id);
+  save();renderBES();
+}
+
+// Wealth sub-tabs
+function switchWealthTab(tab){
+  document.querySelectorAll('.wtab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.finance-section').forEach(s=>s.classList.remove('active'));
+  document.querySelector(`.wtab[data-tab="${tab}"]`)?.classList.add('active');
+  document.getElementById('fs-'+tab)?.classList.add('active');
+  if(tab==='cashflow')renderCashflow();
+  else if(tab==='balance')renderWealth();
+  else if(tab==='projection'){renderProjection();}
+  else if(tab==='bes')renderBES();
+}
+
 </script>
+</div><!-- /main-content -->
+</div><!-- /app-layout -->
 </body>
 </html>
