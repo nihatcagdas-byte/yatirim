@@ -1101,9 +1101,23 @@ function recoverFromKey(key){
       </div>
     </div>
 
-    <!-- TABLO -->
+    <!-- PORTFöY TABLOSU -->
     <div class="sh">
-      <div class="st">Ödeme <span>Listesi</span></div>
+      <div class="st">Portföy <span>Tablosu</span></div>
+      <button class="btn bg2 sm" onclick="exportCSV()">⬇ CSV</button>
+    </div>
+    <div class="tw" style="margin-bottom:20px">
+      <table>
+        <thead><tr id="pthead"></tr></thead>
+        <tbody id="ptbody">
+          <tr><td colspan="9"><div class="empty"><div class="ei">📭</div><div class="et">Hisse eklemek için sağ üstteki butonu kullanın</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TEMETTİ ÖDEME LİSTESİ -->
+    <div class="sh">
+      <div class="st">Temettü <span>Ödeme Listesi</span></div>
     </div>
     <div class="tw">
       <table>
@@ -5711,22 +5725,24 @@ let _cashflowPieChart=null,_balancePieChart=null,_projChart2=null,_besChart=null
 // Auto incomes from portfolio
 function getAutoIncomes(){
   const result=[];
-  // Temettü (son 12 ay)
-  const now=new Date(), ayOnceTarih=new Date(now);
-  ayOnceTarih.setMonth(ayOnceTarih.getMonth()-12);
-  const divTotal=(S.dividends||[]).filter(d=>new Date(d.date)>=ayOnceTarih).reduce((a,d)=>a+d.total,0);
-  if(divTotal>0) result.push({name:'Temettü Geliri',amount:divTotal/12,category:'Temettü (Oto)',auto:true,note:'Son 12 ay ortalama'});
-  // Fon dağıtımı (son 12 ay)
-  const fdTotal=(S.fundDistributions||[]).filter(d=>new Date(d.date)>=ayOnceTarih).reduce((a,d)=>a+d.net,0);
-  if(fdTotal>0) result.push({name:'Fon Dağıtımı',amount:fdTotal/12,category:'Fon Dağıtımı (Oto)',auto:true,note:'Son 12 ay ortalama'});
-  // BES devlet katkısı
-  const besTotal=(S.finance.bes||[]).reduce((a,b)=>a+((b.monthlyContrib||0)*0.25),0);
-  if(besTotal>0) result.push({name:'BES Devlet Katkısı',amount:besTotal,category:'BES Devlet Katkısı (Oto)',auto:true,note:'%25 devlet katkısı'});
-  // Mevduat faiz gelirleri
-  if(typeof getDepositAutoIncomes==='function') result.push(...getDepositAutoIncomes());
-  // Eurobond / tahvil kupon gelirleri
-  const bondIncome=typeof getBondMonthlyIncome==='function'?getBondMonthlyIncome():0;
-  if(bondIncome>0) result.push({name:'Eurobond/Tahvil Kuponu',amount:bondIncome,category:'Faiz',auto:true,note:'Aylık kupon geliri'});
+  try{
+    // Temettü (son 12 ay)
+    const now=new Date(), ayOnceTarih=new Date(now);
+    ayOnceTarih.setMonth(ayOnceTarih.getMonth()-12);
+    const divTotal=(S.dividends||[]).filter(d=>new Date(d.date)>=ayOnceTarih).reduce((a,d)=>a+d.total,0);
+    if(divTotal>0) result.push({name:'Temettü Geliri',amount:divTotal/12,category:'Temettü (Oto)',auto:true,note:'Son 12 ay ortalama'});
+    // Fon dağıtımı (son 12 ay)
+    const fdTotal=(S.fundDistributions||[]).filter(d=>new Date(d.date)>=ayOnceTarih).reduce((a,d)=>a+d.net,0);
+    if(fdTotal>0) result.push({name:'Fon Dağıtımı',amount:fdTotal/12,category:'Fon Dağıtımı (Oto)',auto:true,note:'Son 12 ay ortalama'});
+    // BES devlet katkısı
+    const besTotal=(S.finance?.bes||[]).reduce((a,b)=>a+((b.monthlyContrib||0)*0.25),0);
+    if(besTotal>0) result.push({name:'BES Devlet Katkısı',amount:besTotal,category:'BES Devlet Katkısı (Oto)',auto:true,note:'%25 devlet katkısı'});
+    // Mevduat faiz gelirleri
+    if(typeof getDepositAutoIncomes==='function') result.push(...getDepositAutoIncomes());
+    // Eurobond / tahvil kupon gelirleri
+    const bondIncome=typeof getBondMonthlyIncome==='function'?getBondMonthlyIncome():0;
+    if(bondIncome>0) result.push({name:'Eurobond/Tahvil Kuponu',amount:bondIncome,category:'Faiz',auto:true,note:'Aylık kupon geliri'});
+  }catch(e){}
   return result;
 }
 
@@ -5743,12 +5759,12 @@ function getAutoExpenses(){
 }
 
 function getTotalIncome(){
-  const manual=(S.finance.incomes||[]).reduce((a,i)=>a+i.amount,0);
+  const manual=(S.finance?.incomes||[]).reduce((a,i)=>a+i.amount,0);
   const auto=getAutoIncomes().reduce((a,i)=>a+i.amount,0);
   return manual+auto;
 }
 function getTotalExpense(){
-  const manual=(S.finance.expenses||[]).reduce((a,i)=>a+i.amount,0);
+  const manual=(S.finance?.expenses||[]).reduce((a,i)=>a+i.amount,0);
   const auto=getAutoExpenses().reduce((a,i)=>a+i.amount,0);
   return manual+auto;
 }
@@ -6117,14 +6133,13 @@ function saveFinanceItem(){
   else{const newItem={id:++_finItemCounter,name,amount,category,note};if(type==='income'||type==='expense')newItem.repeat=repeat;if(type==='liability')newItem.monthly=monthly;list.push(newItem);}
   save();
   closeModal('m-finance-item');
-  // Aktif sayfaya göre doğru render fonksiyonunu çağır
   const activePage=document.querySelector('.page.active');
   const pid=activePage?activePage.id:'';
   if(pid==='p-cashflow') renderCashflow2();
   else if(pid==='p-wealth') renderWealth2();
-  else if(pid==='p-projection') renderProjection2();
   else if(type==='income'||type==='expense') renderCashflow2();
   else renderWealth2();
+  renderDashboardNew();
 }
 function delFinanceItem(type,id){
   if(!confirm('Bu kalem silinsin mi?'))return;
@@ -6138,6 +6153,7 @@ function delFinanceItem(type,id){
   else if(pid==='p-wealth') renderWealth2();
   else if(type==='income'||type==='expense') renderCashflow2();
   else renderWealth2();
+  renderDashboardNew();
 }
 
 // BES CRUD
@@ -6179,13 +6195,14 @@ function saveBES(){
   if(id){const b=S.finance.bes.find(x=>x.id===id);if(b){Object.assign(b,{company,startDate,monthlyContrib,currentValue,birthYear,retireAge,annualReturn,totalContrib,totalStateContrib});}}
   else{S.finance.bes.push({id:++_besCounter,company,startDate,monthlyContrib,currentValue,birthYear,retireAge,annualReturn,totalContrib,totalStateContrib});}
   save();closeModal('m-bes');
-  const _abp=document.querySelector('.page.active');
-  if(_abp&&_abp.id==='p-bes') renderBES2(); else renderBES();
+  renderBES2();
+  renderBES();
+  renderDashboardNew();
 }
 function delBES(id){
   if(!confirm('BES hesabı silinsin mi?'))return;
   S.finance.bes=(S.finance.bes||[]).filter(x=>x.id!==id);
-  save();renderBES();
+  save();renderBES();renderBES2();renderDashboardNew();
 }
 
 // Wealth sub-tabs
@@ -6459,7 +6476,7 @@ function renderBES2(){
 function delBES2(id){
   if(!confirm('BES hesabı silinsin mi?'))return;
   S.finance.bes=(S.finance.bes||[]).filter(x=>x.id!==id);
-  save();renderBES2();
+  save();renderBES2();renderBES();renderDashboardNew();
 }
 
 
@@ -6539,16 +6556,21 @@ function saveDeposit(){
   }
   save();
   closeModal('m-deposit');
-  renderDeposits();
-  renderCashflow2();
+  // Aktif sayfaya göre render
+  renderDeposit2();        // Mevduat sayfası
+  renderDeposits();        // Gelir/gider içindeki mevduat bölümü
+  renderCashflow2();       // Gelir/gider sayfası
+  renderDashboardNew();    // Ana sayfa
 }
 
 function delDeposit(id){
   if(!confirm('Mevduat hesabı silinsin mi?')) return;
   S.finance.deposits = (S.finance.deposits||[]).filter(x=>x.id!==id);
   save();
+  renderDeposit2();
   renderDeposits();
   renderCashflow2();
+  renderDashboardNew();
 }
 
 function getDepositAutoIncomes(){
@@ -6732,13 +6754,17 @@ function saveGoldFx(){
   save();
   closeModal('m-goldfx');
   renderGoldFx();
+  renderWealth2();
   renderDashboardNew();
 }
 
 function delGoldFx(id){
   if(!confirm('Bu varlık silinsin mi?')) return;
   S.goldFx=(S.goldFx||[]).filter(x=>x.id!==id);
-  save(); renderGoldFx(); renderDashboardNew();
+  save();
+  renderGoldFx();
+  renderWealth2();
+  renderDashboardNew();
 }
 
 function renderGoldFx(){
@@ -6827,7 +6853,11 @@ function renderDeposit2(){
 function delDeposit2(id){
   if(!confirm('Mevduat hesabı silinsin mi?')) return;
   S.finance.deposits=(S.finance.deposits||[]).filter(x=>x.id!==id);
-  save(); renderDeposit2();
+  save();
+  renderDeposit2();
+  renderDeposits();
+  renderCashflow2();
+  renderDashboardNew();
 }
 
 // ══════════════════════════════════════════════
@@ -6842,6 +6872,7 @@ function renderDashboardNew(){
   const fundVal  = typeof calcFundCurrentValue==='function'?calcFundCurrentValue():0;
   const goldFxVal = getGoldFxTotal();
   const depVal   = (S.finance?.deposits||[]).reduce((a,d)=>a+d.principal,0);
+  const depMonthlyIncome = (S.finance?.deposits||[]).reduce((a,d)=>a+(d.monthlyNet||0),0);
   const besVal   = (S.finance?.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
   const manualAssets = (S.finance?.assets||[]).reduce((a,x)=>a+x.amount,0);
   const liabilities  = (S.finance?.liabilities||[]).reduce((a,x)=>a+x.amount,0);
@@ -7146,13 +7177,8 @@ function renderDividendsPage(){
           <option value="compound">Bileşik Faiz</option>
         </select>
       </div>
-      <div class="fi"><label>Vergi Kesintisi (%)</label>
-        <select id="dep-tax">
-          <option value="0">Yok</option>
-          <option value="5" selected>%5 (≤6 ay)</option>
-          <option value="3">%3 (6-12 ay)</option>
-          <option value="0">%0 (≥1 yıl)</option>
-        </select>
+      <div class="fi"><label>Vergi Kesintisi (%) — Manuel Gir</label>
+        <input type="number" id="dep-tax" placeholder="5" step="0.1" min="0" max="100" value="5" oninput="calcDepositInterest()">
       </div>
       <div class="fi full">
         <label>Not</label>
