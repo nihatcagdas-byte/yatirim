@@ -6635,12 +6635,12 @@ function delDeposit(id){
 }
 
 function getDepositAutoIncomes(){
-  return (S.finance.deposits||[]).map(d=>({
+  return (S.finance?.deposits||[]).map(d=>({
     name: d.bank + ' Faizi',
-    amount: d.monthlyNet||0,
+    amount: d.totalNet||0,
     category: 'Faiz',
     auto: true,
-    note: 'Aylık net faiz · %'+d.rate+' yıllık'
+    note: fmt(d.totalNet||0)+' net · '+d.days+' gün · %'+d.rate
   })).filter(d=>d.amount>0);
 }
 
@@ -6651,15 +6651,15 @@ function getDepositTotalAsset(){
 function renderDeposits(){
   const deps = S.finance.deposits||[];
   const totalPrincipal = deps.reduce((a,d)=>a+d.principal,0);
-  const totalMonthly = deps.reduce((a,d)=>a+(d.monthlyNet||0),0);
-  const totalAnnual = deps.reduce((a,d)=>a+(d.annualNet||0),0);
+  const totalNetFaiz2 = deps.reduce((a,d)=>a+(d.totalNet||0),0);
+  const totalMaturity3 = deps.reduce((a,d)=>a+(d.maturityTotal||d.principal||0),0);
 
   const tp=document.getElementById('dep-total-principal');
   const tm=document.getElementById('dep-total-monthly');
   const ta=document.getElementById('dep-total-annual');
   if(tp) tp.textContent = fmt(totalPrincipal);
-  if(tm) tm.textContent = fmt(totalMonthly);
-  if(ta) ta.textContent = fmt(totalAnnual);
+  if(tm) tm.textContent = fmt(totalNetFaiz2);
+  if(ta) ta.textContent = fmt(totalMaturity3);
 
   const list = document.getElementById('deposit-list');
   if(!list) return;
@@ -6687,7 +6687,7 @@ function renderDeposits(){
         </div>
       </div>
       <div style="text-align:right;margin-left:12px">
-        <div style="font-size:.75rem;color:var(--muted);font-family:var(--fm)">Aylık net</div>
+        <div style="font-size:.75rem;color:var(--muted);font-family:var(--fm)">Net faiz</div>
         <div style="font-size:1rem;font-weight:800;font-family:var(--fm);color:var(--green)">${fmt(d.totalNet||0)}</div>
         <div style="font-size:.75rem;font-weight:700;font-family:var(--fm);color:var(--ac)">Sonu: ${fmt(d.maturityTotal||d.principal+d.totalNet||d.principal)}</div>
       </div>
