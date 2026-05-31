@@ -2,6 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Yatırım Takip</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
@@ -481,8 +482,10 @@ body{overflow-x:hidden}
 .health-score{font-size:3rem;font-weight:800;font-family:var(--fm);text-align:center;margin:10px 0}
 .health-bar{height:12px;background:var(--sf3);border-radius:99px;overflow:hidden;margin-top:8px}
 .health-fill{height:100%;border-radius:99px;transition:width 1s cubic-bezier(.4,0,.2,1)}
-.balance-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
-.balance-side{background:var(--sf);border:1px solid var(--br);border-radius:18px;overflow:hidden}
+.balance-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;align-items:start}
+.balance-side{background:var(--sf);border:1px solid var(--br);border-radius:18px;overflow:visible}
+.bs-body{padding:16px 18px;max-height:none}
+.balance-side{background:var(--sf);border:1px solid var(--br);border-radius:18px;overflow:visible}
 .bs-head{padding:14px 18px;background:var(--sf2);border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between}
 .bs-title{font-size:.85rem;font-weight:700}
 .bs-total{font-size:.95rem;font-weight:800;font-family:var(--fm)}
@@ -609,7 +612,7 @@ function calcDepositValues(d){
 // Tüm mevduatları yeniden hesapla (veri tutarlılığı için)
 function recalcAllDeposits(){
   if(!S.finance?.deposits) return;
-  S.finance.deposits.forEach(d=>{
+  S.finance?.deposits?.forEach(d=>{
     // startDate ve maturity varsa days hesapla
     if(d.startDate && d.maturity){
       d.days = Math.max(0, Math.round((new Date(d.maturity) - new Date(d.startDate)) / (1000*60*60*24)));
@@ -1597,7 +1600,7 @@ function recoverFromKey(key){
     <!-- BALANCE -->
     <div class="finance-section active" id="fs-balance">
       <div id="nw-val" class="net-worth-banner"></div>
-      <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:16px;align-items:start">
         <div>
           <div class="balance-grid">
             <div class="balance-side">
@@ -2022,14 +2025,19 @@ function load(){
 }
 function save(){
   try{
-    // Kritik alanları kaydetmeden önce koru
     if(!S.funds) S.funds=[];
     if(!S.goldFx) S.goldFx=[];
     if(!S.finance) S.finance={incomes:[],expenses:[],assets:[],liabilities:[],bes:[],deposits:[],projParams:{}};
-    localStorage.setItem('tmttakip3',JSON.stringify(S));
-  }catch(e){ console.error('Kayıt hatası:',e); }
-  const e=document.getElementById('last-upd');
-  if(e)e.textContent='Son güncelleme: '+new Date().toLocaleString('tr-TR');
+    // Güvenli JSON dönüşümü
+    const json = JSON.stringify(S);
+    if(json && json.length > 2) {
+      localStorage.setItem('tmttakip3', json);
+    }
+  }catch(e){ console.warn('Kayıt hatası:',e); }
+  try{
+    const e=document.getElementById('last-upd');
+    if(e) e.textContent='Son güncelleme: '+new Date().toLocaleString('tr-TR');
+  }catch(e){}
 }
 // saveToFile — JSON dışa aktarım (yedek için)
 function saveToFile(){ exportAll(); }
@@ -2171,7 +2179,15 @@ function showPage(id,btn){
   else if(id==='goldfx') setTimeout(renderGoldFx,50);
   else if(id==='dividends') setTimeout(renderDividendsPage,50);
   else if(id==='deposit') setTimeout(renderDeposit2,50);
-  else renderAll();
+  else {
+    // Diğer sayfalar için minimal render
+    try{renderDashboard();}catch(e){}
+    try{renderStocks();}catch(e){}
+    try{renderCalendar();}catch(e){}
+    try{renderNotes();}catch(e){}
+    try{renderGoals();}catch(e){}
+    if(typeof renderFunds==='function') try{renderFunds();}catch(e){}
+  }
   if(id==='settings') setTimeout(loadApiKey,50);
 }
 function switchToTab(id){
@@ -2364,7 +2380,13 @@ function delNote(id){S.notes=S.notes.filter(n=>n.id!==id);save();renderNotes();}
 // ══════════════════════════════════════════════
 // RENDER ALL
 // ══════════════════════════════════════════════
-function renderAll(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();if(typeof renderCompare==='function')renderCompare();if(typeof renderFundCompare==='function')renderFundCompare();if(typeof checkAlerts==='function')checkAlerts();if(typeof fillCmpSels==='function')fillCmpSels();if(typeof fillFundCmpSels==='function')fillFundCmpSels();if(typeof fillNoteTickerList==='function')fillNoteTickerList();if(typeof updateCurrencyUI==='function')updateCurrencyUI();if(typeof renderFunds==='function')renderFunds();
+// Debounce: çok hızlı ardışık çağrıları önle
+let _renderAllTimer=null;
+function renderAll(){
+  if(_renderAllTimer) clearTimeout(_renderAllTimer);
+  _renderAllTimer = setTimeout(_renderAllImpl, 16);
+}
+function _renderAllImpl(){renderDashboard();renderStocks();renderCalendar();renderNotes();renderGoals();if(typeof renderCompare==='function')renderCompare();if(typeof renderFundCompare==='function')renderFundCompare();if(typeof checkAlerts==='function')checkAlerts();if(typeof fillCmpSels==='function')fillCmpSels();if(typeof fillFundCmpSels==='function')fillFundCmpSels();if(typeof fillNoteTickerList==='function')fillNoteTickerList();if(typeof updateCurrencyUI==='function')updateCurrencyUI();if(typeof renderFunds==='function')renderFunds();
 // Finance pages — only re-render the active finance tab
 try{
   const activePage=document.querySelector('.page.active');
@@ -2697,7 +2719,8 @@ function renderDonut(){
     if(leg) leg.innerHTML='<div style="color:var(--muted);font-size:.75rem">Varlık ekleyin</div>';
     return;
   }
-  if(donutChart) donutChart.destroy();
+  if(donutChart){try{donutChart.destroy();}catch(e){}donutChart=null;}
+  if(window._dashDonut){try{window._dashDonut.destroy();}catch(e){}window._dashDonut=null;}
   donutChart=new Chart(canvas,{
     type:'doughnut',
     data:{labels:groups.map(g=>g.label),datasets:[{data:groups.map(g=>g.val),backgroundColor:groups.map(g=>g.color),borderWidth:0,hoverOffset:4}]},
@@ -2709,9 +2732,7 @@ function renderDonut(){
       <span class="dl-name">${g.label}</span>
       <span class="dl-pct">${Math.round(g.val/total*100)}%</span>
     </div>`).join('');
-  // window._dashDonut senkronize et
-  if(window._dashDonut){window._dashDonut.destroy();window._dashDonut=null;}
-  window._dashDonut=donutChart;
+  window._dashDonut=donutChart; // uyumluluk için
 }
 
 // ══════════════════════════════════════════════
@@ -5748,10 +5769,10 @@ function getAutoIncomes(){
 function getAutoExpenses(){
   const result=[];
   // BES katkı payı
-  const besTotal=(S.finance.bes||[]).reduce((a,b)=>a+(b.monthlyContrib||0),0);
+  const besTotal=(S.finance?.bes||[]).reduce((a,b)=>a+(b.monthlyContrib||0),0);
   if(besTotal>0) result.push({name:'BES Katkı Payı',amount:besTotal,category:'Diğer',auto:true,note:'Aylık BES kesintisi'});
   // Kredi ödemeleri
-  (S.finance.liabilities||[]).forEach(l=>{
+  (S.finance?.liabilities||[]).forEach(l=>{
     if(l.monthly>0) result.push({name:l.name+' Taksiti',amount:l.monthly,category:l.category||'Konut Kredisi',auto:true,note:'Kredi taksiti'});
   });
   return result;
@@ -5783,7 +5804,7 @@ function getTotalAssets(){
   return manual+portfolio+bes+deposits+goldFx;
 }
 function getTotalLiabilities(){
-  return (S.finance.liabilities||[]).reduce((a,x)=>a+x.amount,0);
+  return (S.finance?.liabilities||[]).reduce((a,x)=>a+x.amount,0);
 }
 function getNetWorth(){return getTotalAssets()-getTotalLiabilities();}
 
@@ -5803,7 +5824,7 @@ function getFinancialHealthScore(){
   // Net worth pozitif (max 25 puan)
   if(netWorth>0) score+=Math.min(25,25*(netWorth/(income*12*5)));
   // Acil fon (max 20 puan)
-  const cashAsset=(S.finance.assets||[]).find(a=>a.category==='Nakit');
+  const cashAsset=(S.finance?.assets||[]).find(a=>a.category==='Nakit');
   const cashAmt=cashAsset?cashAsset.amount:0;
   const emergencyMonths=expense>0?cashAmt/expense:0;
   score+=Math.min(20,emergencyMonths*3.3);
@@ -5811,8 +5832,8 @@ function getFinancialHealthScore(){
 }
 
 function renderCashflow(){
-  const incomes=[...(S.finance.incomes||[]),...getAutoIncomes()];
-  const expenses=[...(S.finance.expenses||[]),...getAutoExpenses()];
+  const incomes=[...(S.finance?.incomes||[]),...getAutoIncomes()];
+  const expenses=[...(S.finance?.expenses||[]),...getAutoExpenses()];
   const totalInc=incomes.reduce((a,i)=>a+i.amount,0);
   const totalExp=expenses.reduce((a,i)=>a+i.amount,0);
   const net=totalInc-totalExp;
@@ -5889,7 +5910,7 @@ function renderWealth(){
   const totalL=getTotalLiabilities();
   const nw=totalA-totalL;
   const portfolio=getPortfolioAssetValue();
-  const bes=(S.finance.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
+  const bes=(S.finance?.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
 
   const nwEl=document.getElementById('nw-val');
   if(nwEl) nwEl.innerHTML=`<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;font-family:var(--fm);text-transform:uppercase;letter-spacing:1px">Net Değer</div><div class="nw-val ${nw>=0?'pos':''}" style="color:${nw>=0?'var(--green)':'var(--red)'}">${fmt(nw)}</div><div style="font-size:.78rem;color:var(--muted);margin-top:6px">Varlık ${fmt(totalA)} — Borç ${fmt(totalL)}</div>`;
@@ -5898,7 +5919,7 @@ function renderWealth(){
   const assets=[
     ...( portfolio>0?[{name:'Yatırım Portföyü',amount:portfolio,category:'Portföy (Oto)',auto:true}]:[]),
     ...(bes>0?[{name:'BES Birikimi',amount:bes,category:'BES (Oto)',auto:true}]:[]),
-    ...(S.finance.assets||[])
+    ...(S.finance?.assets||[])
   ];
   const al=document.getElementById('wealth-assets-list');
   if(al) al.innerHTML=assets.map(a=>`
@@ -5918,7 +5939,7 @@ function renderWealth(){
 
   // Liabilities
   const ll=document.getElementById('wealth-liab-list');
-  if(ll) ll.innerHTML=(S.finance.liabilities||[]).map(l=>`
+  if(ll) ll.innerHTML=(S.finance?.liabilities||[]).map(l=>`
     <div class="bs-row">
       <div style="display:flex;align-items:center;gap:8px;flex:1">
         <div class="fi-cat-dot" style="background:${CAT_COLORS[l.category]||'var(--red)'}"></div>
@@ -5958,7 +5979,7 @@ function renderWealth(){
   if(scoreDesc) scoreDesc.textContent=score>=70?'Finansal sağlık iyi durumda 💪':score>=40?'Orta düzey — geliştirme alanı var ⚠️':'Dikkat — finansal dayanıklılık düşük 🔴';
 
   // Emergency fund
-  const cashAsset=(S.finance.assets||[]).find(a=>a.category==='Nakit');
+  const cashAsset=(S.finance?.assets||[]).find(a=>a.category==='Nakit');
   const cashAmt=cashAsset?cashAsset.amount:0;
   const monthlyExp=getTotalExpense();
   const emMonths=monthlyExp>0?cashAmt/monthlyExp:0;
@@ -5966,85 +5987,12 @@ function renderWealth(){
   if(emEl) emEl.innerHTML=`<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px">Acil Fon Yeterliliği</div><div style="font-size:1.6rem;font-weight:800;font-family:var(--fm);color:${emMonths>=6?'var(--green)':emMonths>=3?'var(--gold)':'var(--red)'}">${emMonths.toFixed(1)} ay</div><div style="font-size:.72rem;color:var(--muted);margin-top:4px">Hedef: 6 ay · Nakit: ${fmt(cashAmt)}</div><div class="prog-bar" style="margin-top:10px"><div class="prog-fill ${emMonths<3?'danger':''}" style="width:${Math.min(100,emMonths/6*100)}%;background:${emMonths>=6?'var(--green)':emMonths>=3?'var(--gold)':'var(--red)'}"></div></div>`;
 }
 
-function renderProjection(){
-  const p=S.finance.projParams||{};
-  const inflation=parseFloat(document.getElementById('pj2-inf')?.value||p.inflation||35)/100;
-  const portReturn=parseFloat(document.getElementById('pj2-ret')?.value||p.portfolioReturn||15)/100;
-  const salaryGrowth=parseFloat(document.getElementById('pj2-sal')?.value||p.salaryIncrease||20)/100;
-  const years=parseInt(document.getElementById('pj2-yr')?.value||p.years||10);
-  const monthlyNet=getTotalIncome()-getTotalExpense();
-  const currentNW=getNetWorth();
-  const currentPortfolio=getPortfolioAssetValue();
-
-  // Save params
-  S.finance.projParams={inflation:Math.round(inflation*100),portfolioReturn:Math.round(portReturn*100),salaryIncrease:Math.round(salaryGrowth*100),years};
-  save();
-
-  // 3 scenarios
-  const scenarios={
-    conservative:{portR:portReturn*0.6,savR:monthlyNet*0.7,label:'Muhafazakar'},
-    balanced:{portR:portReturn,savR:monthlyNet,label:'Dengeli'},
-    aggressive:{portR:portReturn*1.4,savR:monthlyNet*1.3,label:'Agresif'},
-  };
-  const datasets=[];
-  const labels=Array.from({length:years+1},(_,i)=>i===0?'Bugün':`${i}. Yıl`);
-  const colors=['rgba(0,212,170,.8)','rgba(0,149,255,.8)','rgba(245,197,24,.8)'];
-  let si=0;
-  for(const [key,sc] of Object.entries(scenarios)){
-    const data=[currentNW];
-    let nw=currentNW, port=currentPortfolio, monthlySav=sc.savR;
-    for(let y=1;y<=years;y++){
-      port=port*(1+sc.portR)+monthlySav*12;
-      nw=nw+monthlySav*12+(port-currentPortfolio)*(sc.portR);
-      monthlySav=monthlySav*(1+salaryGrowth);
-      data.push(Math.round(nw));
-    }
-    datasets.push({label:sc.label,data,borderColor:colors[si],backgroundColor:colors[si].replace('.8','.1'),fill:si===0,tension:.3,pointRadius:0,borderWidth:2});
-    si++;
-  }
-
-  const canvas=document.getElementById('proj2-chart');
-  if(canvas){
-    if(_projChart2){_projChart2.destroy();_projChart2=null;}
-    const c=tc();
-    _projChart2=new Chart(canvas,{
-      type:'line',
-      data:{labels,datasets},
-      options:{
-        responsive:true,
-        maintainAspectRatio:false,
-        interaction:{mode:'index',intersect:false},
-        plugins:{legend:{labels:{color:c.tick,font:{size:11},boxWidth:10,padding:12}}},
-        scales:{
-          x:{ticks:{color:c.tick,maxTicksLimit:8,font:{size:10}}},
-          y:{ticks:{color:c.tick,callback:function(v){
-            if(v>=1000000) return '₺'+(v/1000000).toFixed(1)+'M';
-            if(v>=1000) return '₺'+(v/1000).toFixed(0)+'K';
-            return '₺'+v;
-          }}}
-        }
-      }
-    });
-  }
-
-  // Summary
-  const sumEl=document.getElementById('proj2-summary');
-  if(sumEl){
-    const finalBalanced=datasets[1].data[years];
-    const finalAggressive=datasets[2].data[years];
-    const passiveIncome=finalBalanced*(portReturn)/12;
-    sumEl.innerHTML=`
-      <div class="kcard"><span class="kcard-icon">🎯</span><div class="klabel">Dengeli Senaryo (${years}Y)</div><div class="kval mo">${finalBalanced>=1e6?'₺'+(finalBalanced/1e6).toFixed(2)+'M':fmt(finalBalanced)}</div><div class="ksub">Net değer tahmini</div></div>
-      <div class="kcard"><span class="kcard-icon">🚀</span><div class="klabel">Agresif Senaryo (${years}Y)</div><div class="kval mo">${finalAggressive>=1e6?'₺'+(finalAggressive/1e6).toFixed(2)+'M':fmt(finalAggressive)}</div><div class="ksub">Maksimum tasarruf</div></div>
-      <div class="kcard"><span class="kcard-icon">💰</span><div class="klabel">Aylık Pasif Gelir Tahmini</div><div class="kval mo pos">${fmt(passiveIncome)}</div><div class="ksub">Portföy getirisi</div></div>
-      <div class="kcard"><span class="kcard-icon">📊</span><div class="klabel">Fin. Özgürlük Skoru</div><div class="kval mo">${getTotalIncome()>0?Math.round((getPortfolioAssetValue()*portReturn/12)/getTotalExpense()*100):0}%</div><div class="ksub">Pasif gelir / gider oranı</div></div>`;
-  }
-}
+// renderProjection duplicate kaldırıldı
 
 function renderBES(){
   const besArea=document.getElementById('bes-list');
   if(!besArea)return;
-  const besList=S.finance.bes||[];
+  const besList=S.finance?.bes||[];
   if(!besList.length){
     besArea.innerHTML='<div class="empty"><div class="ei">🏦</div><div class="et">Henüz BES hesabı eklenmedi.<br>Yukarıdan ekleyebilirsiniz.</div></div>';
     return;
@@ -6141,9 +6089,11 @@ function saveFinanceItem(){
 }
 function delFinanceItem(type,id){
   if(!confirm('Bu kalem silinsin mi?'))return;
-  const lists={income:S.finance.incomes,expense:S.finance.expenses,asset:S.finance.assets,liability:S.finance.liabilities};
-  lists[type]=lists[type].filter(x=>x.id!==id);
-  S.finance[type+'s']=lists[type];
+  if(!S.finance) return;
+  const keyMap={income:'incomes',expense:'expenses',asset:'assets',liability:'liabilities'};
+  const key=keyMap[type];
+  if(!key||!S.finance[key]) return;
+  S.finance[key]=S.finance[key].filter(x=>x.id!==id);
   save();
   const activePage=document.querySelector('.page.active');
   const pid=activePage?activePage.id:'';
@@ -6164,7 +6114,7 @@ function openAddBES(){
   openModal('m-bes');
 }
 function openEditBES(id){
-  const b=(S.finance.bes||[]).find(x=>x.id===id);if(!b)return;
+  const b=(S.finance?.bes||[]).find(x=>x.id===id);if(!b)return;
   document.getElementById('bes-modal-title').textContent='BES Düzenle';
   document.getElementById('bes-item-id').value=id;
   document.getElementById('bes-company').value=b.company||'';
@@ -6201,7 +6151,7 @@ function saveBES(){
 }
 function delBES(id){
   if(!confirm('BES hesabı silinsin mi?'))return;
-  S.finance.bes=(S.finance.bes||[]).filter(x=>x.id!==id);
+  S.finance.bes=(S.finance?.bes||[]).filter(x=>x.id!==id);
   save();renderBES();renderBES2();renderDashboardNew();
 }
 
@@ -6224,8 +6174,8 @@ function switchWealthTab(tab){
 // ══════════════════════════════════════════════
 
 function renderCashflow2(){
-  const incomes=[...(S.finance.incomes||[]),...getAutoIncomes()];
-  const expenses=[...(S.finance.expenses||[]),...getAutoExpenses()];
+  const incomes=[...(S.finance?.incomes||[]),...getAutoIncomes()];
+  const expenses=[...(S.finance?.expenses||[]),...getAutoExpenses()];
   const totalInc=incomes.reduce((a,i)=>a+i.amount,0);
   const totalExp=expenses.reduce((a,i)=>a+i.amount,0);
   const net=totalInc-totalExp;
@@ -6293,7 +6243,7 @@ function renderWealth2(){
   const totalL=getTotalLiabilities();
   const nw=totalA-totalL;
   const portfolio=getPortfolioAssetValue();
-  const bes=(S.finance.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
+  const bes=(S.finance?.bes||[]).reduce((a,b)=>a+(b.currentValue||0),0);
 
   const nwEl=document.getElementById('nw-val');
   if(nwEl) nwEl.innerHTML=`<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;font-family:var(--fm);text-transform:uppercase;letter-spacing:1px">Net Değer</div><div class="nw-val ${nw>=0?'pos':''}" style="color:${nw>=0?'var(--green)':'var(--red)'}">${fmt(nw)}</div><div style="font-size:.78rem;color:var(--muted);margin-top:6px">Varlık ${fmt(totalA)} — Borç ${fmt(totalL)}</div>`;
@@ -6335,7 +6285,7 @@ function renderWealth2(){
   if(atEl) atEl.textContent=fmt(totalA);
 
   const ll=document.getElementById('wealth-liab-list');
-  if(ll) ll.innerHTML=(S.finance.liabilities||[]).map(l=>`
+  if(ll) ll.innerHTML=(S.finance?.liabilities||[]).map(l=>`
     <div class="bs-row">
       <div style="display:flex;align-items:center;gap:8px;flex:1">
         <div class="fi-cat-dot" style="background:${CAT_COLORS[l.category]||'var(--red)'}"></div>
@@ -6369,7 +6319,7 @@ function renderWealth2(){
   const scoreDesc=document.getElementById('health-score-desc');
   if(scoreDesc) scoreDesc.textContent=score>=70?'Finansal sağlık iyi durumda 💪':score>=40?'Orta düzey — geliştirme alanı var ⚠️':'Dikkat — finansal dayanıklılık düşük 🔴';
 
-  const cashAsset=(S.finance.assets||[]).find(a=>a.category==='Nakit');
+  const cashAsset=(S.finance?.assets||[]).find(a=>a.category==='Nakit');
   const cashAmt=cashAsset?cashAsset.amount:0;
   const monthlyExp=getTotalExpense();
   const emMonths=monthlyExp>0?cashAmt/monthlyExp:0;
@@ -6448,7 +6398,7 @@ function renderProjection2(){
 }
 
 function renderBES2(){
-  const besList=S.finance.bes||[];
+  const besList=S.finance?.bes||[];
   const monthlyC=besList.reduce((a,b)=>a+(b.monthlyContrib||0),0);
   const monthlyS=besList.reduce((a,b)=>a+(b.monthlyContrib||0)*((b.stateRate||20)/100),0);
   const totalVal=besList.reduce((a,b)=>a+(b.currentValue||0),0);
@@ -6489,7 +6439,7 @@ function renderBES2(){
 }
 function delBES2(id){
   if(!confirm('BES hesabı silinsin mi?'))return;
-  S.finance.bes=(S.finance.bes||[]).filter(x=>x.id!==id);
+  S.finance.bes=(S.finance?.bes||[]).filter(x=>x.id!==id);
   save();renderBES2();renderBES();renderDashboardNew();
 }
 
@@ -6570,7 +6520,7 @@ function openAddDeposit(){
 }
 
 function openEditDeposit(id){
-  const d = (S.finance.deposits||[]).find(x=>x.id===id);
+  const d = (S.finance?.deposits||[]).find(x=>x.id===id);
   if(!d) return;
   document.getElementById('dep-modal-title').textContent = '🏦 Mevduat Düzenle';
   document.getElementById('dep-item-id').value = id;
@@ -6626,7 +6576,7 @@ function saveDeposit(){
 
 function delDeposit(id){
   if(!confirm('Mevduat hesabı silinsin mi?')) return;
-  S.finance.deposits = (S.finance.deposits||[]).filter(x=>x.id!==id);
+  S.finance.deposits = (S.finance?.deposits||[]).filter(x=>x.id!==id);
   save();
   renderDeposit2();
   renderDeposits();
@@ -6645,11 +6595,11 @@ function getDepositAutoIncomes(){
 }
 
 function getDepositTotalAsset(){
-  return (S.finance.deposits||[]).reduce((a,d)=>a+d.principal, 0);
+  return (S.finance?.deposits||[]).reduce((a,d)=>a+d.principal, 0);
 }
 
 function renderDeposits(){
-  const deps = S.finance.deposits||[];
+  const deps = S.finance?.deposits||[];
   const totalPrincipal = deps.reduce((a,d)=>a+d.principal,0);
   const totalNetFaiz2 = deps.reduce((a,d)=>a+(d.totalNet||0),0);
   const totalMaturity3 = deps.reduce((a,d)=>a+(d.maturityTotal||d.principal||0),0);
@@ -6920,7 +6870,7 @@ function renderDeposit2(){
 }
 function delDeposit2(id){
   if(!confirm('Mevduat hesabı silinsin mi?')) return;
-  S.finance.deposits=(S.finance.deposits||[]).filter(x=>x.id!==id);
+  S.finance.deposits=(S.finance?.deposits||[]).filter(x=>x.id!==id);
   save();
   renderDeposit2();
   renderDeposits();
@@ -7012,9 +6962,10 @@ function renderDashboardNew(){
   // ─ Donut chart ─
   const donutCanvas=el('donutChart');
   if(donutCanvas&&assetGroups.length){
-    if(window._dashDonut){window._dashDonut.destroy();window._dashDonut=null;}
+    if(donutChart){try{donutChart.destroy();}catch(e){}donutChart=null;}
+    if(window._dashDonut){try{window._dashDonut.destroy();}catch(e){}window._dashDonut=null;}
     const c=tc();
-    window._dashDonut=new Chart(donutCanvas,{
+    donutChart=new Chart(donutCanvas,{
       type:'doughnut',
       data:{labels:assetGroups.map(g=>g.label),datasets:[{data:assetGroups.map(g=>g.val),backgroundColor:assetGroups.map(g=>g.color),borderWidth:0,hoverOffset:4}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'72%'}
