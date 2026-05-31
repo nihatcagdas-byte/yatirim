@@ -482,10 +482,10 @@ body{overflow-x:hidden}
 .health-score{font-size:3rem;font-weight:800;font-family:var(--fm);text-align:center;margin:10px 0}
 .health-bar{height:12px;background:var(--sf3);border-radius:99px;overflow:hidden;margin-top:8px}
 .health-fill{height:100%;border-radius:99px;transition:width 1s cubic-bezier(.4,0,.2,1)}
-.balance-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;align-items:start}
-.balance-side{background:var(--sf);border:1px solid var(--br);border-radius:18px;overflow:visible}
+.balance-grid{display:flex;flex-wrap:wrap;gap:20px;margin-bottom:20px;align-items:flex-start}
+.balance-side{background:var(--sf);border:1px solid var(--br);border-radius:18px;overflow:visible;flex:1;min-width:280px;height:auto}
 .bs-body{padding:16px 18px;max-height:none}
-.balance-side{background:var(--sf);border:1px solid var(--br);border-radius:18px;overflow:visible}
+.balance-side{background:var(--sf);border:1px solid var(--br);border-radius:18px;overflow:visible;flex:1;min-width:280px;height:auto}
 .bs-head{padding:14px 18px;background:var(--sf2);border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between}
 .bs-title{font-size:.85rem;font-weight:700}
 .bs-total{font-size:.95rem;font-weight:800;font-family:var(--fm)}
