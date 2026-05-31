@@ -580,6 +580,50 @@ function lockApp(){
   document.getElementById('lock-err').textContent='';
 }
 
+
+// ── Mevduat merkezi hesaplama ──
+function calcDepositValues(d){
+  const principal = d.principal||0;
+  const rate = d.rate||0;
+  const tax = d.tax||0;
+  const type = d.type||'simple';
+  const days = d.days||0;
+  let totalGross, totalNet, monthlyNet, maturityTotal;
+  if(days > 0){
+    if(type === 'compound'){
+      totalGross = principal * Math.pow(1 + (rate/100/365), days) - principal;
+    } else {
+      totalGross = principal * (rate/100) * (days/365);
+    }
+    totalNet = totalGross * (1 - tax/100);
+    monthlyNet = totalNet / (days/30);
+  } else {
+    totalGross = (principal * rate/100) / 12;
+    totalNet = totalGross * (1 - tax/100);
+    monthlyNet = totalNet;
+  }
+  maturityTotal = principal + totalNet;
+  return {totalGross, totalNet, monthlyNet, maturityTotal, annualNet: monthlyNet*12};
+}
+
+// Tüm mevduatları yeniden hesapla (veri tutarlılığı için)
+function recalcAllDeposits(){
+  if(!S.finance?.deposits) return;
+  S.finance.deposits.forEach(d=>{
+    // startDate ve maturity varsa days hesapla
+    if(d.startDate && d.maturity){
+      d.days = Math.max(0, Math.round((new Date(d.maturity) - new Date(d.startDate)) / (1000*60*60*24)));
+    }
+    const v = calcDepositValues(d);
+    d.totalGross = v.totalGross;
+    d.totalNet = v.totalNet;
+    d.monthlyNet = v.monthlyNet;
+    d.maturityTotal = v.maturityTotal;
+    d.annualNet = v.annualNet;
+    d.monthlyGross = v.totalGross;
+  });
+}
+
 // ── Veri kurtarma fonksiyonları ──
 function tryRecoverData(){
   var resultEl=document.getElementById('recover-result');
@@ -1785,7 +1829,7 @@ function recoverFromKey(key){
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
       <div class="stat-chip"><div class="stat-chip-lbl">Toplam Katkı</div><div class="stat-chip-val mo" id="bes2-total-contrib">₺0</div></div>
-      <div class="stat-chip"><div class="stat-chip-lbl">Devlet Katkısı (%25)</div><div class="stat-chip-val mo pos" id="bes2-total-state">₺0</div></div>
+      <div class="stat-chip"><div class="stat-chip-lbl">Devlet Katkısı</div><div class="stat-chip-val mo pos" id="bes2-total-state">₺0</div></div>
       <div class="stat-chip"><div class="stat-chip-lbl">Güncel Değer</div><div class="stat-chip-val mo" id="bes2-total-val">₺0</div></div>
     </div>
     <div id="bes2-list"></div>
@@ -4135,7 +4179,10 @@ function today(){return new Date().toISOString().split('T')[0];}
 load();
 setTheme(S.settings?.theme||'ocean');
 // setTimeout: tüm script blokları yüklendikten sonra render et
+// Mevduat değerlerini yeniden hesapla (veri tutarlılığı)
+if(typeof recalcAllDeposits==='function') recalcAllDeposits();
 setTimeout(function(){
+  if(typeof recalcAllDeposits==='function') recalcAllDeposits();
   renderAll();
   if(typeof renderDashboardNew==='function') renderDashboardNew();
   if(typeof renderDonut==='function') renderDonut();
@@ -5764,7 +5811,7 @@ function getAutoIncomes(){
     if(fdTotal>0) result.push({name:'Fon Dağıtımı',amount:fdTotal/12,category:'Fon Dağıtımı (Oto)',auto:true,note:'Son 12 ay ortalama'});
     // BES devlet katkısı
     const besTotal=(S.finance?.bes||[]).reduce((a,b)=>a+((b.monthlyContrib||0)*((b.stateRate||20)/100)),0);
-    if(besTotal>0) result.push({name:'BES Devlet Katkısı',amount:besTotal,category:'BES Devlet Katkısı (Oto)',auto:true,note:'%25 devlet katkısı'});
+    if(besTotal>0) result.push({name:'BES Devlet Katkısı',amount:besTotal,category:'BES Devlet Katkısı (Oto)',auto:true,note:'Devlet katkısı'});
     // Mevduat faiz gelirleri
     if(typeof getDepositAutoIncomes==='function') result.push(...getDepositAutoIncomes());
     // Eurobond / tahvil kupon gelirleri
@@ -6100,7 +6147,7 @@ function renderBES(){
       </div>
       <div class="bes-kpis" style="grid-template-columns:repeat(3,1fr)">
         <div class="kcard"><div class="klabel">Aylık Katkım</div><div class="kval mo" style="font-size:1.1rem">${fmt(b.monthlyContrib)}</div></div>
-        <div class="kcard"><div class="klabel">Aylık Devlet Katkısı (%${b.stateRate||20})</div><div class="kval mo pos" style="font-size:1.1rem">${fmt(b.monthlyContrib*((b.stateRate||20)/100))}</div></div>
+        <div class="kcard"><div class="klabel">Aylık Devlet Katkısı</div><div class="kval mo pos" style="font-size:1.1rem">${fmt(b.monthlyContrib*((b.stateRate||20)/100))}</div></div>
         <div class="kcard"><div class="klabel">Güncel Değer</div><div class="kval mo" style="font-size:1.1rem">${b.currentValue?fmt(b.currentValue):'—'}</div></div>
       </div>
       ${yearsToRetire!==null?`<div style="background:var(--sf2);border-radius:10px;padding:12px;margin-top:8px;font-size:.8rem"><span style="color:var(--muted)">Emekliliğe kalan:</span> <strong style="color:var(--ac)">${yearsToRetire} yıl</strong> · <span style="color:var(--muted)">Tahmini birikim:</span> <strong>${projectedVal>1e6?'₺'+(projectedVal/1e6).toFixed(2)+'M':fmt(projectedVal)}</strong> (yıllık ${b.annualReturn||12}% getiri)</div>`:''}
@@ -6494,7 +6541,7 @@ function renderBES2(){
       </div>
       <div class="bes-kpis" style="grid-template-columns:repeat(3,1fr)">
         <div class="kcard"><div class="klabel">Aylık Katkım</div><div class="kval mo" style="font-size:1.1rem">${fmt(b.monthlyContrib)}</div></div>
-        <div class="kcard"><div class="klabel">Aylık Devlet Katkısı (%${b.stateRate||20})</div><div class="kval mo pos" style="font-size:1.1rem">${fmt(b.monthlyContrib*((b.stateRate||20)/100))}</div></div>
+        <div class="kcard"><div class="klabel">Aylık Devlet Katkısı</div><div class="kval mo pos" style="font-size:1.1rem">${fmt(b.monthlyContrib*((b.stateRate||20)/100))}</div></div>
         <div class="kcard"><div class="klabel">Güncel Değer</div><div class="kval mo" style="font-size:1.1rem">${b.currentValue?fmt(b.currentValue):'—'}</div></div>
       </div>
       ${yearsToRetire!==null?`<div style="background:var(--sf2);border-radius:10px;padding:12px;margin-top:8px;font-size:.8rem"><span style="color:var(--muted)">Emekliliğe kalan:</span> <strong style="color:var(--ac)">${yearsToRetire} yıl</strong>${projectedVal>0?' · <span style="color:var(--muted)">Tahmini birikim:</span> <strong>'+( projectedVal>=1e6?'₺'+(projectedVal/1e6).toFixed(2)+'M':fmt(projectedVal))+'</strong> (yıllık '+( b.annualReturn||12)+'% getiri)':''}</div>`:''}
@@ -6618,24 +6665,11 @@ function saveDeposit(){
   if(startDate && maturity){
     days = Math.max(0, Math.round((new Date(maturity) - new Date(startDate)) / (1000*60*60*24)));
   }
-  let totalGross, totalNet, monthlyNet;
-  if(days > 0){
-    if(type === 'compound'){
-      totalGross = principal * Math.pow(1 + (rate/100/365), days) - principal;
-    } else {
-      totalGross = principal * (rate/100) * (days/365);
-    }
-    totalNet = totalGross * (1 - tax/100);
-    monthlyNet = totalNet / (days/30);
-  } else {
-    totalGross = (principal * rate/100) / 12;
-    totalNet = totalGross * (1 - tax/100);
-    monthlyNet = totalNet;
-  }
-
-  const maturityTotal = principal + totalNet;
+  const tmpItem = {principal, rate, tax, type, days};
+  const v = typeof calcDepositValues==='function' ? calcDepositValues(tmpItem) : {totalGross:0,totalNet:0,monthlyNet:0,maturityTotal:principal,annualNet:0};
   const item = {id: id||++_depCounter, bank, principal, rate, startDate, maturity, type, tax, note,
-    days, totalGross, totalNet, maturityTotal, monthlyGross: totalGross, monthlyNet, annualNet: monthlyNet*12};
+    days, totalGross:v.totalGross, totalNet:v.totalNet, maturityTotal:v.maturityTotal,
+    monthlyGross:v.totalGross, monthlyNet:v.monthlyNet, annualNet:v.annualNet};
   if(id){
     const idx = S.finance.deposits.findIndex(x=>x.id===id);
     if(idx>=0) S.finance.deposits[idx] = item;
