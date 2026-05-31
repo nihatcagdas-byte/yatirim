@@ -1586,19 +1586,19 @@ function recoverFromKey(key){
   <div class="wrap">
     <div class="pg-header">
       <div>
-        <div class="pg-title">Servet & <span>Finans</span></div>
-        <div class="pg-sub">Gelir/Gider dengesi, bilanço ve projeksiyon</div>
+        <div class="pg-title">Bilanço & <span>Net Değer</span></div>
+        <div class="pg-sub">Varlık ve yükümlülük dengesi</div>
       </div>
     </div>
     <div class="wealth-tabs">
-      <button class="wtab active" data-tab="cashflow" onclick="switchWealthTab('cashflow')">💸 Gelir / Gider</button>
-      <button class="wtab" data-tab="balance" onclick="switchWealthTab('balance')">⚖️ Bilanço</button>
+      <button class="wtab" data-tab="cashflow" onclick="switchWealthTab('cashflow')">💸 Gelir / Gider</button>
+      <button class="wtab active" data-tab="balance" onclick="switchWealthTab('balance')">⚖️ Bilanço</button>
       <button class="wtab" data-tab="projection" onclick="switchWealthTab('projection')">🔮 Projeksiyon</button>
       <button class="wtab" data-tab="bes" onclick="switchWealthTab('bes')">🏦 BES</button>
     </div>
 
     <!-- CASHFLOW -->
-    <div class="finance-section active" id="fs-cashflow">
+    <div class="finance-section" id="fs-cashflow">
       <div id="cf-summary"></div>
       <div class="income-grid">
         <div class="finance-card">
@@ -1629,7 +1629,7 @@ function recoverFromKey(key){
     </div>
 
     <!-- BALANCE -->
-    <div class="finance-section" id="fs-balance">
+    <div class="finance-section active" id="fs-balance">
       <div id="nw-val" class="net-worth-banner"></div>
       <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px">
         <div>
@@ -2241,7 +2241,9 @@ function showPage(id,btn){
   if(sbBtn) sbBtn.classList.add('active');
   if(id==='dashboard') setTimeout(()=>{renderAll();renderDashboardNew();},50);
   else if(id==='cashflow') setTimeout(renderCashflow2,50);
-  else if(id==='wealth') setTimeout(renderWealth2,50);
+  else if(id==='wealth') setTimeout(()=>{
+    switchWealthTab('balance');
+  },50);
   else if(id==='projection') setTimeout(renderProjection2,50);
   else if(id==='bes') setTimeout(renderBES2,50);
   else if(id==='goldfx') setTimeout(renderGoldFx,50);
@@ -6374,11 +6376,26 @@ function renderWealth2(){
   const nwEl=document.getElementById('nw-val');
   if(nwEl) nwEl.innerHTML=`<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;font-family:var(--fm);text-transform:uppercase;letter-spacing:1px">Net Değer</div><div class="nw-val ${nw>=0?'pos':''}" style="color:${nw>=0?'var(--green)':'var(--red)'}">${fmt(nw)}</div><div style="font-size:.78rem;color:var(--muted);margin-top:6px">Varlık ${fmt(totalA)} — Borç ${fmt(totalL)}</div>`;
 
-  const assets=[
-    ...(portfolio>0?[{name:'Yatırım Portföyü',amount:portfolio,category:'Portföy (Oto)',auto:true}]:[]),
+  // Otomatik varlıklar - ayrıntılı
+  const stockVal = typeof calcStockCurrentValue==='function'?calcStockCurrentValue():0;
+  const fundVal  = typeof calcFundCurrentValue==='function'?calcFundCurrentValue():0;
+  const goldItems = (S.goldFx||[]).filter(x=>x.cat==='gold');
+  const forexItems = (S.goldFx||[]).filter(x=>x.cat==='forex');
+  const bondItems  = (S.goldFx||[]).filter(x=>x.cat==='bond');
+  const goldVal  = goldItems.reduce((a,x)=>a+(x.totalVal||0),0);
+  const forexVal = forexItems.reduce((a,x)=>a+(x.totalVal||0),0);
+  const bondVal  = bondItems.reduce((a,x)=>a+(x.totalVal||0),0);
+  const depVal   = (S.finance?.deposits||[]).reduce((a,d)=>a+d.principal,0);
+  const autoAssets = [
+    ...(stockVal>0?[{name:'Hisse Senedi ('+( S.stocks?.length||0)+' hisse)',amount:stockVal,category:'Portföy (Oto)',auto:true}]:[]),
+    ...(fundVal>0?[{name:'Yatırım Fonu ('+(S.funds?.length||0)+' fon)',amount:fundVal,category:'Portföy (Oto)',auto:true}]:[]),
+    ...(goldVal>0?[{name:'Altın & Gümüş',amount:goldVal,category:'Portföy (Oto)',auto:true}]:[]),
+    ...(forexVal>0?[{name:'Döviz',amount:forexVal,category:'Portföy (Oto)',auto:true}]:[]),
+    ...(bondVal>0?[{name:'Eurobond / Tahvil',amount:bondVal,category:'Portföy (Oto)',auto:true}]:[]),
+    ...(depVal>0?[{name:'Mevduat ('+(S.finance?.deposits?.length||0)+' hesap)',amount:depVal,category:'Mevduat (Oto)',auto:true}]:[]),
     ...(bes>0?[{name:'BES Birikimi',amount:bes,category:'BES (Oto)',auto:true}]:[]),
-    ...(S.finance.assets||[])
   ];
+  const assets=[...autoAssets, ...(S.finance?.assets||[])];
   const al=document.getElementById('wealth-assets-list');
   if(al) al.innerHTML=assets.map(a=>`
     <div class="bs-row">
