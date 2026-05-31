@@ -1602,8 +1602,8 @@ function recoverFromKey(key){
       <div id="nw-val" class="net-worth-banner"></div>
       <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:16px;align-items:start;grid-auto-rows:min-content">
         <div style="align-self:start">
-          <div class="balance-grid">
-            <div class="balance-side">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="background:var(--sf);border:1px solid var(--br);border-radius:18px">
               <div class="bs-head">
                 <div class="bs-title" style="color:var(--green)">🟢 Varlıklar</div>
                 <div style="display:flex;align-items:center;gap:8px">
@@ -1611,9 +1611,9 @@ function recoverFromKey(key){
                   <button class="btn bp sm" onclick="openAddFinanceModal('asset')">+ Ekle</button>
                 </div>
               </div>
-              <div class="bs-body" id="wealth-assets-list"></div>
+              <div id="wealth-assets-list" style="padding:0 18px"></div>
             </div>
-            <div class="balance-side">
+            <div style="background:var(--sf);border:1px solid var(--br);border-radius:18px">
               <div class="bs-head">
                 <div class="bs-title" style="color:var(--red)">🔴 Yükümlülükler</div>
                 <div style="display:flex;align-items:center;gap:8px">
@@ -1621,7 +1621,7 @@ function recoverFromKey(key){
                   <button class="btn bp sm" onclick="openAddFinanceModal('liability')">+ Ekle</button>
                 </div>
               </div>
-              <div class="bs-body" id="wealth-liab-list"></div>
+              <div id="wealth-liab-list" style="padding:0 18px"></div>
             </div>
           </div>
         </div>
