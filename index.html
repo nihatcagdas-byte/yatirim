@@ -1603,7 +1603,7 @@ function recoverFromKey(key){
       <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:16px;align-items:start;grid-auto-rows:min-content">
         <div style="align-self:start">
           <div style="display:flex;flex-direction:column;gap:16px">
-            <div style="background:var(--sf);border:1px solid var(--br);border-radius:18px">
+            <div style="background:var(--sf);border:1px solid var(--br);border-radius:18px;overflow:hidden">
               <div class="bs-head">
                 <div class="bs-title" style="color:var(--green)">🟢 Varlıklar</div>
                 <div style="display:flex;align-items:center;gap:8px">
@@ -1613,7 +1613,7 @@ function recoverFromKey(key){
               </div>
               <div id="wealth-assets-list" style="padding:0 18px"></div>
             </div>
-            <div style="background:var(--sf);border:1px solid var(--br);border-radius:18px">
+            <div style="background:var(--sf);border:1px solid var(--br);border-radius:18px;overflow:hidden">
               <div class="bs-head">
                 <div class="bs-title" style="color:var(--red)">🔴 Yükümlülükler</div>
                 <div style="display:flex;align-items:center;gap:8px">
@@ -6161,10 +6161,10 @@ function switchWealthTab(tab){
   document.querySelectorAll('.finance-section').forEach(s=>s.classList.remove('active'));
   document.querySelector(`.wtab[data-tab="${tab}"]`)?.classList.add('active');
   document.getElementById('fs-'+tab)?.classList.add('active');
-  if(tab==='cashflow')renderCashflow();
-  else if(tab==='balance')renderWealth();
-  else if(tab==='projection'){renderProjection();}
-  else if(tab==='bes')renderBES();
+  if(tab==='cashflow'){if(typeof renderCashflow2==='function')renderCashflow2();else renderCashflow();}
+  else if(tab==='balance'){if(typeof renderWealth2==='function')renderWealth2();}
+  else if(tab==='projection'){if(typeof renderProjection2==='function')renderProjection2();else renderProjection();}
+  else if(tab==='bes'){if(typeof renderBES2==='function')renderBES2();else renderBES();}
 }
 
 
