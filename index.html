@@ -1070,6 +1070,7 @@ function recoverFromKey(key){
     <div class="kgrid" id="fund-kgrid" style="margin-bottom:18px">
       <div class="kcard"><span class="kcard-icon">💼</span><div class="klabel">Toplam Yatırım</div><div class="kval mo" id="fk-inv">₺0</div><div class="ksub" id="fk-lots">0 alım</div></div>
       <div class="kcard"><span class="kcard-icon">📈</span><div class="klabel">Güncel Değer</div><div class="kval mo" id="fk-cur">₺0</div><div class="ktrend neu" id="fk-pl">—</div></div>
+      <div class="kcard"><span class="kcard-icon">⚡</span><div class="klabel">Anlık K/Z (Portföy)</div><div class="kval mo" id="fk-unreal">₺0</div><div class="ktrend neu" id="fk-unrealpct">—</div></div>
       <div class="kcard"><span class="kcard-icon">🏆</span><div class="klabel">Toplam Getiri</div><div class="kval mo" id="fk-ret">₺0</div><div class="ktrend neu" id="fk-retpct">—</div></div>
       <div class="kcard"><span class="kcard-icon">📦</span><div class="klabel">Fon Sayısı</div><div class="kval mo" id="fk-cnt">0</div><div class="ksub">aktif fon</div></div>
     </div>
@@ -5225,7 +5226,7 @@ function renderFunds(){
   if(!area)return;
 
   // KPI'lar
-  let totalCost=0,totalCur=0,totalShares=0,lotCount=0,totalRealized=0;
+  let totalCost=0,totalCur=0,totalShares=0,lotCount=0,totalRealized=0,totalRemainingCost=0;
   S.funds.forEach(f=>{
     const pos=calcFundPosition(f);
     totalCost+=pos.cost;
@@ -5233,6 +5234,7 @@ function renderFunds(){
     totalRealized+=pos.realized;
     totalShares+=pos.shares;
     lotCount+=f.lots.length;
+    totalRemainingCost+=pos.shares*pos.avgNav;
   });
   const totalPL=(totalCur-totalCost)+totalRealized;
   const totalPLPct=totalCost?totalPL/totalCost*100:0;
@@ -5242,6 +5244,13 @@ function renderFunds(){
   _setEl('fk-ret',fmt(totalPL));
   _setEl('fk-retpct',`${totalPL>=0?'+':''}${totalPLPct.toFixed(2)}%`);
   _setEl('fk-cnt',S.funds.length.toString());
+  // Anlık K/Z - sadece kalan pozisyon
+  const unrealPL = totalCur - totalRemainingCost;
+  const unrealPct = totalRemainingCost ? unrealPL/totalRemainingCost*100 : 0;
+  const urEl = document.getElementById('fk-unreal');
+  if(urEl){ urEl.textContent = (unrealPL>=0?'+':'')+fmt(unrealPL); urEl.className='kval mo '+(unrealPL>=0?'pos':'neg'); }
+  const urPctEl = document.getElementById('fk-unrealpct');
+  if(urPctEl){ urPctEl.textContent = (unrealPL>=0?'+':'')+unrealPct.toFixed(2)+'%'; urPctEl.className='ktrend '+(unrealPL>=0?'pos':'neg'); }
   const plEl=document.getElementById('fk-pl');
   if(plEl){plEl.textContent=`${totalPL>=0?'+':''}${totalPLPct.toFixed(2)}%`;plEl.className=`ktrend ${totalPL>=0?'pos':'neg'}`;}
   const retEl=document.getElementById('fk-retpct');
