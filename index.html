@@ -584,6 +584,21 @@ function lockApp(){
 }
 
 
+// ── Acil Fon Hesabı ──
+function getEmergencyFundAmount(){
+  // 1. Bilanço'daki Nakit varlığı
+  const cashAsset = (S.finance?.assets||[]).find(a=>a.category==='Nakit');
+  const cashAmt = cashAsset ? cashAsset.amount : 0;
+  // 2. Para Piyasası Fonlarının güncel değeri
+  const ppFundAmt = (S.funds||[])
+    .filter(f=>f.type==='Para Piyasası Fonu')
+    .reduce((a,f)=>{
+      const pos = calcFundPosition(f);
+      return a + (f.curNav||pos.avgNav||0)*pos.shares;
+    }, 0);
+  return cashAmt + ppFundAmt;
+}
+
 // ── Mevduat merkezi hesaplama ──
 function calcDepositValues(d){
   const principal = d.principal||0;
@@ -2332,8 +2347,17 @@ document.addEventListener('keydown',e=>{
 // ══════════════════════════════════════════════
 const TXN_REFRESH_PAGE_KEY='tt:refresh-page';
 function triggerTxnRefresh(pageId){
-  try{ if(pageId)sessionStorage.setItem(TXN_REFRESH_PAGE_KEY,pageId); }catch(e){}
-  setTimeout(()=>location.reload(),80);
+  // location.reload() kaldırıldı - şifre ekranı açılıyordu
+  // Sayfa reload yerine direkt render et
+  try{
+    if(pageId){
+      setTimeout(()=>{
+        showPage(pageId);
+        renderAll();
+        if(typeof renderDashboardNew==='function') renderDashboardNew();
+      }, 50);
+    }
+  }catch(e){}
 }
 
 function saveStock(){
@@ -5833,9 +5857,8 @@ function getFinancialHealthScore(){
   // Net worth pozitif (max 25 puan)
   if(netWorth>0) score+=Math.min(25,25*(netWorth/(income*12*5)));
   // Acil fon (max 20 puan)
-  const cashAsset=(S.finance?.assets||[]).find(a=>a.category==='Nakit');
-  const cashAmt=cashAsset?cashAsset.amount:0;
-  const emergencyMonths=expense>0?cashAmt/expense:0;
+  const emTotal = typeof getEmergencyFundAmount==='function' ? getEmergencyFundAmount() : 0;
+  const emergencyMonths=expense>0?emTotal/expense:0;
   score+=Math.min(20,emergencyMonths*3.3);
   return Math.min(100,Math.round(score));
 }
@@ -5987,13 +6010,21 @@ function renderWealth(){
   const scoreDesc=document.getElementById('health-score-desc');
   if(scoreDesc) scoreDesc.textContent=score>=70?'Finansal sağlık iyi durumda 💪':score>=40?'Orta düzey — geliştirme alanı var ⚠️':'Dikkat — finansal dayanıklılık düşük 🔴';
 
-  // Emergency fund
-  const cashAsset=(S.finance?.assets||[]).find(a=>a.category==='Nakit');
-  const cashAmt=cashAsset?cashAsset.amount:0;
+  // Emergency fund - Para Piyasası Fonu + Nakit
+  const emAmt = typeof getEmergencyFundAmount==='function' ? getEmergencyFundAmount() : 0;
+  const cashOnly = (S.finance?.assets||[]).find(a=>a.category==='Nakit');
+  const cashOnlyAmt = cashOnly ? cashOnly.amount : 0;
+  const ppFundAmt = emAmt - cashOnlyAmt;
   const monthlyExp=getTotalExpense();
-  const emMonths=monthlyExp>0?cashAmt/monthlyExp:0;
+  const emMonths=monthlyExp>0?emAmt/monthlyExp:0;
   const emEl=document.getElementById('emergency-fund');
-  if(emEl) emEl.innerHTML=`<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px">Acil Fon Yeterliliği</div><div style="font-size:1.6rem;font-weight:800;font-family:var(--fm);color:${emMonths>=6?'var(--green)':emMonths>=3?'var(--gold)':'var(--red)'}">${emMonths.toFixed(1)} ay</div><div style="font-size:.72rem;color:var(--muted);margin-top:4px">Hedef: 6 ay · Nakit: ${fmt(cashAmt)}</div><div class="prog-bar" style="margin-top:10px"><div class="prog-fill ${emMonths<3?'danger':''}" style="width:${Math.min(100,emMonths/6*100)}%;background:${emMonths>=6?'var(--green)':emMonths>=3?'var(--gold)':'var(--red)'}"></div></div>`;
+  if(emEl) emEl.innerHTML=`<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px">Acil Fon Yeterliliği</div>
+    <div style="font-size:1.6rem;font-weight:800;font-family:var(--fm);color:${emMonths>=6?'var(--green)':emMonths>=3?'var(--gold)':'var(--red)'}">${emMonths.toFixed(1)} ay</div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.8">
+      Hedef: 6 ay · Toplam: ${fmt(emAmt)}<br>
+      ${cashOnlyAmt>0?'🏦 Nakit: '+fmt(cashOnlyAmt)+'  ':''}${ppFundAmt>0?'📦 Para Piyasası: '+fmt(ppFundAmt):''}
+    </div>
+    <div class="prog-bar" style="margin-top:10px"><div class="prog-fill" style="width:${Math.min(100,emMonths/6*100)}%;background:${emMonths>=6?'var(--green)':emMonths>=3?'var(--gold)':'var(--red)'}"></div></div>`;
 }
 
 // renderProjection duplicate kaldırıldı
@@ -6328,10 +6359,9 @@ function renderWealth2(){
   const scoreDesc=document.getElementById('health-score-desc');
   if(scoreDesc) scoreDesc.textContent=score>=70?'Finansal sağlık iyi durumda 💪':score>=40?'Orta düzey — geliştirme alanı var ⚠️':'Dikkat — finansal dayanıklılık düşük 🔴';
 
-  const cashAsset=(S.finance?.assets||[]).find(a=>a.category==='Nakit');
-  const cashAmt=cashAsset?cashAsset.amount:0;
+  const emAmt2 = typeof getEmergencyFundAmount==='function' ? getEmergencyFundAmount() : 0;
   const monthlyExp=getTotalExpense();
-  const emMonths=monthlyExp>0?cashAmt/monthlyExp:0;
+  const emMonths=monthlyExp>0?emAmt2/monthlyExp:0;
   const emEl=document.getElementById('emergency-fund');
   if(emEl) emEl.innerHTML=`<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px">Acil Fon Yeterliliği</div><div style="font-size:1.6rem;font-weight:800;font-family:var(--fm);color:${emMonths>=6?'var(--green)':emMonths>=3?'var(--gold)':'var(--red)'}">${emMonths.toFixed(1)} ay</div><div style="font-size:.72rem;color:var(--muted);margin-top:4px">Hedef: 6 ay · Nakit: ${fmt(cashAmt)}</div><div class="prog-bar" style="margin-top:10px"><div class="prog-fill" style="width:${Math.min(100,emMonths/6*100)}%;background:${emMonths>=6?'var(--green)':emMonths>=3?'var(--gold)':'var(--red)'}"></div></div>`;
 }
