@@ -6908,12 +6908,11 @@ function renderGoldFx(){
             ${hasPnl?`<div style="font-size:.75rem;font-weight:700;font-family:var(--fm);color:${x.pnl>=0?'var(--green)':'var(--red)'}">${x.pnl>=0?'+':''}${fmt(x.pnl)} (${pnlPct}%)</div>`:''}
             ${x.monthlyCoupon>0?`<div style="font-size:.68rem;color:var(--green);font-family:var(--fm)">${fmt(x.monthlyCoupon)}/ay</div>`:''}
           </div>
-          ${x._count===1?`<div class="fi-actions" style="opacity:1">
-            <button class="btn bg2 sm" onclick="openEditGoldFx(${x._ids[0]})">✏</button>
-            <button class="btn bd sm" onclick="delGoldFx(${x._ids[0]})">✕</button>
-          </div>`:`<div class="fi-actions" style="opacity:1">
-            <button class="btn bg2 sm" onclick="openGfxGroupDetail(${JSON.stringify(x._ids)})">📋</button>
-          </div>`}
+          <div class="fi-actions" style="opacity:1">
+            ${x._count>1?`<button class="btn bg2 sm" onclick="openGfxGroupDetail(${JSON.stringify(x._ids)})" title="${x._count} alımı görüntüle">📋</button>`:''}
+            <button class="btn bg2 sm" onclick="openEditGoldFx(${x._ids[0]})" title="${x._count>1?'İlk alımı düzenle':'Düzenle'}">✏</button>
+            <button class="btn bd sm" onclick="delGfxGroup(${JSON.stringify(x._ids)})" title="${x._count>1?'Tüm alımları sil':'Sil'}">✕</button>
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -7404,6 +7403,18 @@ function saveBulkGoldPrices(){
   });
   save();
   closeModal('m-bulk-gold-price');
+  renderGoldFx();
+  if(typeof renderDashboardNew==='function') renderDashboardNew();
+  if(typeof renderWealth2==='function') renderWealth2();
+}
+
+
+function delGfxGroup(ids){
+  var count = ids.length;
+  var msg = count > 1 ? count + ' alım silinsin mi?' : 'Bu varlık silinsin mi?';
+  if(!confirm(msg)) return;
+  S.goldFx = (S.goldFx||[]).filter(function(x){ return !ids.includes(x.id); });
+  save();
   renderGoldFx();
   if(typeof renderDashboardNew==='function') renderDashboardNew();
   if(typeof renderWealth2==='function') renderWealth2();
