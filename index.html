@@ -6909,7 +6909,7 @@ function renderGoldFx(){
             ${x.monthlyCoupon>0?`<div style="font-size:.68rem;color:var(--green);font-family:var(--fm)">${fmt(x.monthlyCoupon)}/ay</div>`:''}
           </div>
           <div class="fi-actions" style="opacity:1">
-            ${x._count>1?`<button class="btn bg2 sm" onclick="openGfxGroupDetail(${JSON.stringify(x._ids)})" title="${x._count} alımı görüntüle">📋</button>`:''}
+            ${x._count>1?`<button class="btn bg2 sm" data-ids="${x._ids.join(',')}" onclick="openGfxGroupDetail(this.dataset.ids.split(',').map(Number))" title="${x._count} alımı görüntüle">📋</button>`:''}
             <button class="btn bg2 sm" onclick="openEditGoldFx(${x._ids[0]})" title="${x._count>1?'İlk alımı düzenle':'Düzenle'}">✏</button>
             <button class="btn bd sm" onclick="delGfxGroup(${JSON.stringify(x._ids)})" title="${x._count>1?'Tüm alımları sil':'Sil'}">✕</button>
           </div>
@@ -7250,29 +7250,36 @@ function saveStockPrice(){
 
 
 function openGfxGroupDetail(ids){
-  // Birden fazla alım olan varlık grubunu göster
-  const items = (S.goldFx||[]).filter(x=>ids.includes(x.id));
+  if(!ids||!ids.length) return;
+  var idList = typeof ids === "string" ? ids.split(",").map(Number) : Array.from(ids).map(Number);
+  var items = (S.goldFx||[]).filter(function(x){ return idList.indexOf(x.id)>=0; });
   if(!items.length) return;
-  const name = items[0].name||GFX_LABELS[items[0].type]||items[0].type;
-  let html = '<div style="font-weight:700;margin-bottom:12px">'+name+' — '+ids.length+' Alım</div>';
-  items.forEach(x=>{
-    const pnl = x.pnl||0;
-    html += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--br);gap:12px">'
-      +'<div><div style="font-size:.8rem;font-weight:600">'+x.qty+' adet @ ₺'+x.price+'</div>'
-      +'<div style="font-size:.68rem;color:var(--muted)">Maliyet: '+fmt(x.totalVal)+'</div></div>'
-      +'<div style="text-align:right">'
-      +(x.curPrice&&x.curPrice!==x.price
-        ?'<div style="font-size:.8rem">'+fmt(x.curVal||x.totalVal)+'</div>'
-         +'<div style="font-size:.72rem;color:'+(pnl>=0?'var(--green)':'var(--red)')+'">'+( pnl>=0?'+':'')+fmt(pnl)+'</div>'
-        :'<div style="font-size:.8rem">'+fmt(x.totalVal)+'</div>'
-      )
-      +'<div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end">'
-      +'<button class="btn bg2 sm" onclick="openEditGoldFx('+x._ids[0]+')" title="Düzenle">✏</button>'
-      +'<button class="btn bd sm" onclick="delGoldFx('+x.id+')">✕</button>'
-      +'</div></div></div>';
+  var name = GFX_LABELS[items[0].type]||items[0].type;
+  var html = '<div style="font-weight:700;margin-bottom:14px">'+name+' — '+items.length+' Alım</div>';
+  items.forEach(function(x){
+    var pnl = x.pnl||0;
+    var hasCur = x.curPrice && x.curPrice !== x.price;
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--br);gap:10px">'
+      +'<div style="flex:1"><div style="font-size:.82rem;font-weight:600">'+x.qty+' adet × ₺'+Number(x.price).toLocaleString("tr-TR")+'</div>'
+      +'<div style="font-size:.7rem;color:var(--muted)">Alış maliyeti: '+fmt(x.totalVal)+'</div>'
+      +(hasCur ? '<div style="font-size:.72rem;color:' + (pnl>=0?'var(--green)':'var(--red)') + '">K/Z: ' + (pnl>=0?'+':'')+fmt(pnl)+'</div>' : '')
+      +'</div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<button class="btn bg2 sm" onclick="closeModal(\'m-gfx-group\');setTimeout(function(){openEditGoldFx('+x.id+');},150)">✏</button>'
+      +'<button class="btn bd sm" onclick="delGoldFxItem('+x.id+')">✕</button>'
+      +'</div></div>';
   });
-  document.getElementById('gfx-group-body').innerHTML = html;
-  openModal('m-gfx-group');
+  document.getElementById("gfx-group-body").innerHTML = html;
+  openModal("m-gfx-group");
+}
+
+function delGoldFxItem(id){
+  if(!confirm("Bu alım silinsin mi?")) return;
+  S.goldFx = (S.goldFx||[]).filter(function(x){ return x.id!==id; });
+  save();
+  closeModal("m-gfx-group");
+  renderGoldFx();
+  if(typeof renderDashboardNew==="function") renderDashboardNew();
 }
 
 
