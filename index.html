@@ -2677,7 +2677,10 @@ function renderDashboard(){
         <td>${yld!==null?`<span class="badge bo" data-tip="Yıllık beklenen verim / maliyet">%${yld.toFixed(2)}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
         <td style="white-space:nowrap">${monthBadges}</td>
         <td>${spark}</td>
-        <td><button class="btn bd sm" onclick="event.stopPropagation();delStock('${s.ticker}')">🗑</button></td>
+        <td style="white-space:nowrap">
+          <button class="btn bg2 sm" onclick="event.stopPropagation();openStockPriceModal('${s.ticker}','${cp||avg}')" title="Güncel fiyat gir">💰</button>
+          <button class="btn bd sm" onclick="event.stopPropagation();delStock('${s.ticker}')">🗑</button>
+        </td>
       </tr>`;
     }).join('');
   }
@@ -6730,14 +6733,31 @@ function calcGfxValue(){
   const t = document.getElementById('gfx-type').value;
   const qty = parseFloat(document.getElementById('gfx-qty').value)||0;
   const price = parseFloat(document.getElementById('gfx-price').value)||0;
+  const curPrice = parseFloat(document.getElementById('gfx-curprice')?.value)||0;
   const couponRate = parseFloat(document.getElementById('gfx-coupon-rate')?.value)||0;
   const nominal = parseFloat(document.getElementById('gfx-nominal')?.value)||1000;
   const cat = GFX_CATS[t]||'gold';
   const prev = document.getElementById('gfx-preview');
   if(!qty||!price){ prev.style.display='none'; return; }
   const totalVal = qty * price;
+  const effectivePrice = curPrice > 0 ? curPrice : price;
+  const curVal = qty * effectivePrice;
+  const pnl = curVal - totalVal;
+  const pnlPct = totalVal > 0 ? (pnl/totalVal*100).toFixed(1) : 0;
   prev.style.display = 'block';
-  document.getElementById('gfx-prev-val').textContent = fmt(totalVal);
+  document.getElementById('gfx-prev-val').textContent = fmt(totalVal) + (curPrice>0 ? ' → ' + fmt(curVal) : '');
+  // K/Z satırı
+  let kzEl = document.getElementById('gfx-prev-kz');
+  if(!kzEl){
+    kzEl = document.createElement('div');
+    kzEl.id = 'gfx-prev-kz';
+    document.getElementById('gfx-preview').appendChild(kzEl);
+  }
+  if(curPrice > 0 && curPrice !== price){
+    kzEl.innerHTML = '<div style="margin-top:8px;font-size:.75rem"><span style="color:var(--muted)">K/Z: </span><span style="color:'+(pnl>=0?'var(--green)':'var(--red)')+';font-weight:700;font-family:var(--fm)">'+(pnl>=0?'+':'')+fmt(pnl)+' ('+pnlPct+'%)</span></div>';
+  } else {
+    kzEl.innerHTML = '';
+  }
   const couponWrap = document.getElementById('gfx-prev-coupon-wrap');
   if(cat==='bond' && couponRate>0){
     const monthlyCoupon = (qty * nominal * couponRate / 100) / 12;
@@ -6751,7 +6771,7 @@ function calcGfxValue(){
 function openAddGoldFx(defaultType){
   document.getElementById('gfx-modal-title').textContent = 'Varlık Ekle';
   document.getElementById('gfx-item-id').value = '';
-  ['gfx-name','gfx-qty','gfx-price','gfx-coupon-rate','gfx-nominal','gfx-currency','gfx-note'].forEach(id=>{
+  ['gfx-name','gfx-qty','gfx-price','gfx-curprice','gfx-coupon-rate','gfx-nominal','gfx-currency','gfx-note'].forEach(id=>{
     const e=document.getElementById(id); if(e) e.value='';
   });
   document.getElementById('gfx-maturity').value='';
@@ -6772,6 +6792,7 @@ function openEditGoldFx(id){
   document.getElementById('gfx-name').value=item.name||'';
   document.getElementById('gfx-qty').value=item.qty||'';
   document.getElementById('gfx-price').value=item.price||'';
+  if(item.curPrice) document.getElementById('gfx-curprice').value=item.curPrice;
   if(item.couponRate) document.getElementById('gfx-coupon-rate').value=item.couponRate;
   if(item.maturity) document.getElementById('gfx-maturity').value=item.maturity;
   if(item.nominal) document.getElementById('gfx-nominal').value=item.nominal;
@@ -6788,6 +6809,7 @@ function saveGoldFx(){
   const name = document.getElementById('gfx-name').value.trim() || GFX_LABELS[type]||type;
   const qty = parseFloat(document.getElementById('gfx-qty').value)||0;
   const price = parseFloat(document.getElementById('gfx-price').value)||0;
+  const curPrice = parseFloat(document.getElementById('gfx-curprice')?.value)||0;
   const couponRate = parseFloat(document.getElementById('gfx-coupon-rate')?.value)||0;
   const maturity = document.getElementById('gfx-maturity')?.value||'';
   const nominal = parseFloat(document.getElementById('gfx-nominal')?.value)||1000;
@@ -6796,9 +6818,12 @@ function saveGoldFx(){
   if(!qty||!price){ alert('Miktar ve birim fiyat zorunludur.'); return; }
   const cat = GFX_CATS[type]||'gold';
   const totalVal = qty * price;
+  const effectivePrice = curPrice > 0 ? curPrice : price;
+  const curVal = qty * effectivePrice;
+  const pnl = curVal - totalVal;
   const monthlyCoupon = cat==='bond'&&couponRate>0 ? (qty*nominal*couponRate/100)/12 : 0;
   if(!S.goldFx) S.goldFx=[];
-  const item={id:id||++_gfxCounter,type,cat,name,qty,price,totalVal,couponRate,maturity,nominal,currency,note,monthlyCoupon};
+  const item={id:id||++_gfxCounter,type,cat,name,qty,price,curPrice:curPrice||0,totalVal,curVal,pnl,couponRate,maturity,nominal,currency,note,monthlyCoupon};
   if(id){ const idx=S.goldFx.findIndex(x=>x.id===id); if(idx>=0) S.goldFx[idx]=item; }
   else { S.goldFx.push(item); }
   save();
@@ -6834,25 +6859,53 @@ function renderGoldFx(){
 
   const rowHtml=(items,cat)=>{
     if(!items.length) return '<div class="empty" style="padding:20px 0"><div class="et">Varlık yok</div></div>';
-    return items.map(x=>{
+
+    // Aynı türdeki varlıkları birleştir
+    const grouped={};
+    items.forEach(x=>{
+      const key=x.type+'|'+(x.name||GFX_LABELS[x.type]||x.type);
+      if(!grouped[key]){
+        grouped[key]={...x, _ids:[x.id], _count:1};
+      } else {
+        grouped[key].qty+=x.qty;
+        grouped[key].totalVal+=x.totalVal;
+        grouped[key].curVal=(grouped[key].curVal||grouped[key].totalVal)+(x.curVal||x.totalVal);
+        grouped[key].pnl=(grouped[key].pnl||0)+(x.pnl||0);
+        grouped[key].monthlyCoupon=(grouped[key].monthlyCoupon||0)+(x.monthlyCoupon||0);
+        // Ağırlıklı ortalama fiyat
+        const totQty=grouped[key].qty;
+        grouped[key].price=totQty>0?grouped[key].totalVal/totQty:grouped[key].price;
+        grouped[key].curPrice=totQty>0?grouped[key].curVal/totQty:grouped[key].curPrice;
+        grouped[key]._ids.push(x.id);
+        grouped[key]._count++;
+      }
+    });
+
+    return Object.values(grouped).map(x=>{
       const daysLeft=x.maturity?Math.ceil((new Date(x.maturity)-new Date())/(86400000)):null;
+      const hasPnl=x.pnl!==0&&x.pnl!==undefined;
+      const pnlPct=x.totalVal>0?(x.pnl/x.totalVal*100).toFixed(1):0;
+      const effectiveVal=x.curVal||x.totalVal;
       return `<div class="fi-row" style="padding:11px 0">
         <div class="fi-left">
           <div class="fi-cat-dot" style="background:${cat==='gold'?'var(--gold)':cat==='forex'?'var(--ac2)':'var(--ac)'}"></div>
           <div>
-            <div class="fi-name">${x.name||GFX_LABELS[x.type]||x.type}</div>
-            <div class="fi-type">${x.qty} × ${fmt(x.price)}${x.couponRate?' · Kupon %'+x.couponRate:''}${daysLeft!==null?' · Vade '+(daysLeft>0?daysLeft+' gün':'doldu'):''}</div>
+            <div class="fi-name">${x.name||GFX_LABELS[x.type]||x.type}${x._count>1?' <span style="font-size:.65rem;color:var(--muted)">('+x._count+' alım)</span>':''}</div>
+            <div class="fi-type">${x.qty.toFixed(x.qty%1===0?0:3)} adet · Alış: ${fmt(x.totalVal)}${x.curPrice&&x.curPrice!==x.price?' · Güncel: ₺'+x.curPrice.toFixed(4):''}${x.couponRate?' · Kupon %'+x.couponRate:''}${daysLeft!==null?' · Vade '+(daysLeft>0?daysLeft+' gün':'doldu'):''}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <div style="text-align:right">
-            <div class="fi-amount">${fmt(x.totalVal)}</div>
+            <div class="fi-amount">${fmt(effectiveVal)}</div>
+            ${hasPnl?`<div style="font-size:.75rem;font-weight:700;font-family:var(--fm);color:${x.pnl>=0?'var(--green)':'var(--red)'}">${x.pnl>=0?'+':''}${fmt(x.pnl)} (${pnlPct}%)</div>`:''}
             ${x.monthlyCoupon>0?`<div style="font-size:.68rem;color:var(--green);font-family:var(--fm)">${fmt(x.monthlyCoupon)}/ay</div>`:''}
           </div>
-          <div class="fi-actions" style="opacity:1">
-            <button class="btn bg2 sm" onclick="openEditGoldFx(${x.id})">✏</button>
-            <button class="btn bd sm" onclick="delGoldFx(${x.id})">✕</button>
-          </div>
+          ${x._count===1?`<div class="fi-actions" style="opacity:1">
+            <button class="btn bg2 sm" onclick="openEditGoldFx(${x._ids[0]})">✏</button>
+            <button class="btn bd sm" onclick="delGoldFx(${x._ids[0]})">✕</button>
+          </div>`:`<div class="fi-actions" style="opacity:1">
+            <button class="btn bg2 sm" onclick="openGfxGroupDetail(${JSON.stringify(x._ids)})">📋</button>
+          </div>`}
         </div>
       </div>`;
     }).join('');
@@ -7163,7 +7216,70 @@ function renderDividendsPage(){
 
 
 
+
+// ── Hisse Güncel Fiyat Güncelleme ──
+function openStockPriceModal(ticker, curPrice){
+  const el = document.getElementById('spm-ticker');
+  const el2 = document.getElementById('spm-price');
+  if(el) el.value = ticker;
+  const el3=document.getElementById('spm-ticker-show'); if(el3) el3.value=ticker;
+  if(el2){ el2.value = curPrice&&curPrice!='null'&&curPrice!='undefined'?parseFloat(curPrice).toFixed(4):''; el2.focus(); }
+  openModal('m-stock-price');
+}
+
+function saveStockPrice(){
+  const ticker = document.getElementById('spm-ticker').value;
+  const price = parseFloat(document.getElementById('spm-price').value);
+  if(!ticker||!price){ alert('Fiyat giriniz.'); return; }
+  if(!S.prices) S.prices={};
+  S.prices[ticker] = S.prices[ticker]||{};
+  S.prices[ticker].price = price;
+  S.prices[ticker].updatedAt = new Date().toISOString();
+  save();
+  closeModal('m-stock-price');
+  renderAll();
+  renderDashboardNew();
+}
+
+
+function openGfxGroupDetail(ids){
+  // Birden fazla alım olan varlık grubunu göster
+  const items = (S.goldFx||[]).filter(x=>ids.includes(x.id));
+  if(!items.length) return;
+  const name = items[0].name||GFX_LABELS[items[0].type]||items[0].type;
+  let html = '<div style="font-weight:700;margin-bottom:12px">'+name+' — '+ids.length+' Alım</div>';
+  items.forEach(x=>{
+    const pnl = x.pnl||0;
+    html += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--br);gap:12px">'
+      +'<div><div style="font-size:.8rem;font-weight:600">'+x.qty+' adet @ ₺'+x.price+'</div>'
+      +'<div style="font-size:.68rem;color:var(--muted)">Maliyet: '+fmt(x.totalVal)+'</div></div>'
+      +'<div style="text-align:right">'
+      +(x.curPrice&&x.curPrice!==x.price
+        ?'<div style="font-size:.8rem">'+fmt(x.curVal||x.totalVal)+'</div>'
+         +'<div style="font-size:.72rem;color:'+(pnl>=0?'var(--green)':'var(--red)')+'">'+( pnl>=0?'+':'')+fmt(pnl)+'</div>'
+        :'<div style="font-size:.8rem">'+fmt(x.totalVal)+'</div>'
+      )
+      +'<div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end">'
+      +'<button class="btn bg2 sm" onclick="closeModal('m-gfx-group');setTimeout(()=>openEditGoldFx('+x.id+'),100)">✏</button>'
+      +'<button class="btn bd sm" onclick="delGoldFx('+x.id+')">✕</button>'
+      +'</div></div></div>';
+  });
+  document.getElementById('gfx-group-body').innerHTML = html;
+  openModal('m-gfx-group');
+}
+
 </script>
+<!-- ALTIN/DÖVİZ GRUP DETAY MODAL -->
+<div class="ov" id="m-gfx-group">
+  <div class="modal" style="max-width:460px">
+    <div class="mt">📋 Alım Detayları</div>
+    <div id="gfx-group-body" style="max-height:400px;overflow-y:auto"></div>
+    <div class="ma">
+      <button class="btn bg2" onclick="closeModal('m-gfx-group')">Kapat</button>
+    </div>
+  </div>
+</div>
+
 <!-- ALTIN/DÖVİZ/BOND MODAL -->
 <div class="ov" id="m-goldfx">
   <div class="modal">
@@ -7207,6 +7323,7 @@ function renderDividendsPage(){
       <div class="fi" id="gfx-nominal-row" style="display:none"><label>Nominal Değer (₺/birim)</label><input type="number" id="gfx-nominal" placeholder="1000" step="1" oninput="calcGfxValue()"></div>
       <!-- Currency için -->
       <div class="fi" id="gfx-currency-row" style="display:none"><label>Döviz Kodu</label><input type="text" id="gfx-currency" placeholder="USD" style="text-transform:uppercase" maxlength="5"></div>
+      <div class="fi"><label>Güncel Birim Fiyat (₺) — Opsiyonel</label><input type="number" id="gfx-curprice" placeholder="Alış fiyatından farklıysa gir" step="any" oninput="calcGfxValue()"></div>
       <div class="fi full"><label>Not</label><input type="text" id="gfx-note" placeholder="Opsiyonel..."></div>
     </div>
     <!-- Önizleme -->
@@ -7220,6 +7337,28 @@ function renderDividendsPage(){
     <div class="ma">
       <button class="btn bg2" onclick="closeModal('m-goldfx')">İptal</button>
       <button class="btn bp" onclick="saveGoldFx()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- HİSSE GÜNCEL FİYAT MODAL -->
+<div class="ov" id="m-stock-price">
+  <div class="modal" style="max-width:380px">
+    <div class="mt">💰 Güncel Fiyat Gir</div>
+    <input type="hidden" id="spm-ticker">
+    <div class="fg">
+      <div class="fi full">
+        <label>Hisse Kodu</label>
+        <input type="text" id="spm-ticker-show" readonly style="opacity:.6">
+      </div>
+      <div class="fi full">
+        <label>Güncel Fiyat (₺) *</label>
+        <input type="number" id="spm-price" placeholder="0.00" step="0.0001" onkeydown="if(event.key==='Enter')saveStockPrice()">
+      </div>
+    </div>
+    <div class="ma">
+      <button class="btn bg2" onclick="closeModal('m-stock-price')">İptal</button>
+      <button class="btn bp" onclick="saveStockPrice()">Kaydet</button>
     </div>
   </div>
 </div>
