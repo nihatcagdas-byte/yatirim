@@ -7268,7 +7268,7 @@ function openGfxGroupDetail(ids){
         :'<div style="font-size:.8rem">'+fmt(x.totalVal)+'</div>'
       )
       +'<div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end">'
-      +'<button class="btn bg2 sm" onclick="closeModal(\'m-gfx-group\');setTimeout(()=>openEditGoldFx('+x.id+'),100)">✏</button>'
+      +'<button class="btn bg2 sm" onclick="openEditGoldFx('+x._ids[0]+')" title="Düzenle">✏</button>'
       +'<button class="btn bd sm" onclick="delGoldFx('+x.id+')">✕</button>'
       +'</div></div></div>';
   });
@@ -7363,7 +7363,7 @@ function openBulkGoldPriceModal(){
       + '<input type="number" class="bulk-gold-input" data-type="'+g.type+'" data-avg="'+g.avgPrice+'" data-qty="'+g.totalQty+'"'
       + ' value="'+g.curPrice.toFixed(2)+'" step="1" placeholder="Güncel fiyat"'
       + ' style="flex:1;background:var(--sf2);border:1px solid var(--br);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--fm);font-size:.85rem">'
-      + '<div style="min-width:90px;text-align:right;font-size:.78rem;font-family:var(--fm)" id="bgp-kz-'+g.type.replace(/[^a-z0-9]/gi,\'_\')+'">—</div>'
+      + '<div style="min-width:90px;text-align:right;font-size:.78rem;font-family:var(--fm)" id="bgp-kz-'+g.type.replace(/[^a-z0-9]/gi,'_')+'">—</div>'
       + '</div>';
   });
 
