@@ -6865,9 +6865,9 @@ function renderGoldFx(){
     // Aynı türdeki varlıkları birleştir
     const grouped={};
     items.forEach(x=>{
-      const key=x.type+'|'+(x.name||GFX_LABELS[x.type]||x.type);
+      const key=x.type; // Aynı tür = birleştir (örn: tüm çeyrek altınlar)
       if(!grouped[key]){
-        grouped[key]={...x, _ids:[x.id], _count:1};
+        grouped[key]={...x, _ids:[x.id], _count:1, _groupName:GFX_LABELS[x.type]||x.type};
       } else {
         grouped[key].qty+=x.qty;
         grouped[key].totalVal+=x.totalVal;
@@ -6892,7 +6892,7 @@ function renderGoldFx(){
         <div class="fi-left">
           <div class="fi-cat-dot" style="background:${cat==='gold'?'var(--gold)':cat==='forex'?'var(--ac2)':'var(--ac)'}"></div>
           <div>
-            <div class="fi-name">${x.name||GFX_LABELS[x.type]||x.type}${x._count>1?' <span style="font-size:.65rem;color:var(--muted)">('+x._count+' alım)</span>':''}</div>
+            <div class="fi-name">${x._groupName||GFX_LABELS[x.type]||x.type}${x._count>1?' <span style="font-size:.65rem;color:var(--muted)">('+x._count+' alım)</span>':''}</div>
             <div class="fi-type">${x.qty.toFixed(x.qty%1===0?0:3)} adet · Alış: ${fmt(x.totalVal)}${x.curPrice&&x.curPrice!==x.price?' · Güncel: ₺'+x.curPrice.toFixed(4):''}${x.couponRate?' · Kupon %'+x.couponRate:''}${daysLeft!==null?' · Vade '+(daysLeft>0?daysLeft+' gün':'doldu'):''}</div>
           </div>
         </div>
