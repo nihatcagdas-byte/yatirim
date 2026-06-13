@@ -2187,22 +2187,24 @@ function showPage(id,btn){
   if(sbBtn) sbBtn.classList.add('active');
   if(id==='dashboard') setTimeout(()=>{renderAll();renderDashboardNew();},50);
   else if(id==='cashflow') setTimeout(renderCashflow2,50);
-  else if(id==='wealth') setTimeout(()=>{
-    switchWealthTab('balance');
-  },50);
+  else if(id==='wealth') setTimeout(()=>{ switchWealthTab('balance'); },50);
   else if(id==='projection') setTimeout(renderProjection2,50);
   else if(id==='bes') setTimeout(renderBES2,50);
   else if(id==='goldfx') setTimeout(renderGoldFx,50);
   else if(id==='dividends') setTimeout(renderDividendsPage,50);
   else if(id==='deposit') setTimeout(renderDeposit2,50);
+  else if(id==='funds') setTimeout(()=>{ if(typeof renderFunds==='function') renderFunds(); },50);
+  else if(id==='stocks') setTimeout(()=>{ if(typeof renderStocks==='function') renderStocks(); },50);
+  else if(id==='analysis') setTimeout(()=>{ if(typeof renderCompare==='function') renderCompare(); if(typeof renderFundCompare==='function') renderFundCompare(); },50);
   else {
-    // Diğer sayfalar için minimal render
-    try{renderDashboard();}catch(e){}
-    try{renderStocks();}catch(e){}
-    try{renderCalendar();}catch(e){}
-    try{renderNotes();}catch(e){}
-    try{renderGoals();}catch(e){}
-    if(typeof renderFunds==='function') try{renderFunds();}catch(e){}
+    setTimeout(()=>{
+      try{renderDashboard();}catch(e){}
+      try{renderStocks();}catch(e){}
+      try{renderCalendar();}catch(e){}
+      try{renderNotes();}catch(e){}
+      try{renderGoals();}catch(e){}
+      if(typeof renderFunds==='function') try{renderFunds();}catch(e){}
+    },50);
   }
   if(id==='settings') setTimeout(loadApiKey,50);
 }
@@ -7260,7 +7262,7 @@ function openGfxGroupDetail(ids){
         :'<div style="font-size:.8rem">'+fmt(x.totalVal)+'</div>'
       )
       +'<div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end">'
-      +'<button class="btn bg2 sm" onclick="closeModal('m-gfx-group');setTimeout(()=>openEditGoldFx('+x.id+'),100)">✏</button>'
+      +'<button class="btn bg2 sm" onclick="closeModal(\'m-gfx-group\');setTimeout(()=>openEditGoldFx('+x.id+'),100)">✏</button>'
       +'<button class="btn bd sm" onclick="delGoldFx('+x.id+')">✕</button>'
       +'</div></div></div>';
   });
